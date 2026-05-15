@@ -10,22 +10,22 @@ logger = logging.getLogger(__name__)
 
 DEMO_ENDPOINTS = [
     {
-        "url": "http://localhost:8001/sim/auth_service_1",
-        "name": "auth-service",
+        "url": "https://httpbin.org/get",
+        "name": "httpbin",
         "check_interval": 30,
-        "alert_threshold": 300,
+        "alert_threshold": 500,
     },
     {
-        "url": "http://localhost:8001/sim/cdn_edge_4",
-        "name": "cdn-edge",
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "name": "jsonplaceholder",
         "check_interval": 30,
-        "alert_threshold": 100,
+        "alert_threshold": 500,
     },
     {
-        "url": "http://localhost:8001/sim/payments_api_2",
-        "name": "payments-api",
+        "url": "https://api.github.com",
+        "name": "github-api",
         "check_interval": 30,
-        "alert_threshold": 600,
+        "alert_threshold": 500,
     },
 ]
 

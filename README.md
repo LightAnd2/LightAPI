@@ -2,6 +2,8 @@
 
 > Uptime and latency monitoring for APIs and services. Trains a per-endpoint LSTM on collected data to detect anomalies and predict degradation — not just threshold checks.
 
+**Live:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) · **API:** [lightai-production.up.railway.app](https://lightai-production.up.railway.app)
+
 **Stack:** `React` `FastAPI` `SQLite` `PyTorch` `APScheduler` `WebSocket`
 
 ![Landing](screenshots/landing.png)
@@ -155,19 +157,26 @@ Compatible with Slack incoming webhooks, Discord, PagerDuty, or any custom endpo
 1. Push this repo to GitHub
 2. Create a new Railway project and connect the repo
 3. Railway reads `railway.toml` automatically — no additional config needed
-4. Set `GITHUB_WEBHOOK_SECRET` if using GitHub deploy tracking
+4. Generate a public domain in Railway → Settings → Networking
+5. Set `GITHUB_WEBHOOK_SECRET` if using GitHub deploy tracking
 
 ### Frontend — Vercel
 
-1. Import the repo in Vercel and set the root directory to `frontend`
-2. Add the following environment variables:
+1. Install the Vercel CLI: `npm i -g vercel`
+2. Run `vercel --cwd frontend --prod` and follow the prompts
+3. Add environment variables via CLI:
+
+```bash
+vercel env add VITE_API_URL production
+vercel env add VITE_WS_URL production
+```
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | Your Railway backend URL (e.g. `https://lightai.up.railway.app`) |
-| `VITE_WS_URL` | Same URL with `wss://` scheme (e.g. `wss://lightai.up.railway.app`) |
+| `VITE_API_URL` | Your Railway backend URL (e.g. `https://lightai-production.up.railway.app`) |
+| `VITE_WS_URL` | Same URL with `wss://` scheme (e.g. `wss://lightai-production.up.railway.app`) |
 
-3. Deploy
+4. Redeploy: `vercel --cwd frontend --prod`
 
 ---
 
