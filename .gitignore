@@ -36,3 +36,6 @@ backend/.env
 
 # Claude Code session data
 .claude/
+
+# Vercel CLI
+.vercel/
