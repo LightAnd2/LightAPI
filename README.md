@@ -4,15 +4,7 @@
 
 **Stack:** `React` `FastAPI` `SQLite` `PyTorch` `APScheduler` `WebSocket`
 
----
-
-## Screenshots
-
 ![Landing](screenshots/landing.png)
-
-![Dashboard](screenshots/realDeployedExample.png)
-
-![Demo](screenshots/Example%20Demo.jpg)
 
 ---
 
@@ -60,6 +52,8 @@ The simulator auto-registers all 10 services with LightAI on startup.
 5. Click **Start Monitoring**
 
 LightAI starts pinging immediately. After 100 readings (~50 minutes at 30s intervals), the LSTM trains automatically. Until then, z-score anomaly detection runs as a fallback.
+
+![Dashboard](screenshots/realDeployedExample.png)
 
 ---
 
@@ -123,6 +117,8 @@ After each push, LightAI will:
 - Monitor the endpoint for 10 minutes post-deploy
 - Compare pre vs. post baselines
 - Surface a regression badge in the Deploy Tracking panel if latency increased by 20% or more, linked to the commit SHA
+
+![Demo](screenshots/Example%20Demo.jpg)
 
 ---
 
@@ -236,3 +232,9 @@ lightai/
 | `POST` | `/api/webhooks/github` | GitHub push event receiver |
 | `WS` | `/ws/:id` | Per-endpoint real-time feed |
 | `WS` | `/ws` | Global feed (all endpoints) |
+
+---
+
+## Credits
+
+Built by [Andrew Koja](https://www.linkedin.com/in/andrewkoja) — [GitHub](https://github.com/LightAnd2)
