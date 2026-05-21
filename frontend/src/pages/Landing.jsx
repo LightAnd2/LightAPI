@@ -53,9 +53,9 @@ export default function Landing() {
     <div className="min-h-screen bg-base">
       <header className="bg-white border-b border-border">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo size={18} />
-            <span className="text-sm font-bold text-gray-900 tracking-tight">LightAI</span>
+          <Link to="/" className="flex items-center gap-2.5">
+            <Logo size={22} />
+            <span className="text-base font-bold text-gray-900 tracking-tight">LightAI</span>
           </Link>
           <Link to="/dashboard" className="btn-primary text-xs px-3 py-1.5">
             Dashboard
@@ -86,7 +86,6 @@ export default function Landing() {
               </Link>
             </div>
 
-            <LiveStatusStrip endpoints={endpoints} />
           </motion.div>
         </section>
 
@@ -215,7 +214,7 @@ export default function Landing() {
 
         <div className="border-t border-border" />
 
-        <section className="py-8 grid grid-cols-3 gap-6 text-center">
+        <section className="py-8 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {[
             { value: '28,800+', label: 'readings / day per endpoint' },
             { value: '100ms', label: 'WebSocket update latency' },
@@ -230,28 +229,24 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-border bg-white mt-2">
-        <div className="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Logo size={14} />
-            <span className="text-xs font-bold text-gray-700">LightAI</span>
+        <div className="max-w-5xl mx-auto px-6 py-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Logo size={14} />
+              <span className="text-xs font-bold text-gray-700">LightAI</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <a href="https://github.com/LightAnd2" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
+                <Github size={14} />
+              </a>
+              <a href="https://www.linkedin.com/in/andrewkoja" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
+                <Linkedin size={14} />
+              </a>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://github.com/LightAnd2"
-              target="_blank"
-              rel="noreferrer"
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <Github size={14} />
-            </a>
-            <a
-              href="https://www.linkedin.com/in/andrewkoja"
-              target="_blank"
-              rel="noreferrer"
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <Linkedin size={14} />
-            </a>
+          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+            <p className="text-xs text-gray-400">&copy; {new Date().getFullYear()} Andrew Koja. All rights reserved.</p>
+            <Link to="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy Policy</Link>
           </div>
         </div>
       </footer>
