@@ -101,10 +101,10 @@ export default function Dashboard() {
       <header className="bg-white border-b border-border shrink-0">
         <div className="h-14 px-5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-msu-green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-msu-green">
               <polyline points="2,14 5,14 7,6 9,20 11,11 13,9 15,15 17,14 22,14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="text-sm font-bold text-gray-900 tracking-tight">LightAI</span>
+            <span className="text-base font-bold text-gray-900 tracking-tight">LightAI</span>
           </Link>
           <GlobalStats stats={globalStats} />
           <SettingsDropdown

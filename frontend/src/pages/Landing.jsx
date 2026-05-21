@@ -229,24 +229,20 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-border bg-white mt-2">
-        <div className="max-w-5xl mx-auto px-6 py-5">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Logo size={14} />
-              <span className="text-xs font-bold text-gray-700">LightAI</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <a href="https://github.com/LightAnd2" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
-                <Github size={14} />
-              </a>
-              <a href="https://www.linkedin.com/in/andrewkoja" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
-                <Linkedin size={14} />
-              </a>
-            </div>
+        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Logo size={14} />
+            <span className="text-xs font-bold text-gray-700">LightAI</span>
           </div>
-          <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-            <p className="text-xs text-gray-400">&copy; {new Date().getFullYear()} Andrew Koja. All rights reserved.</p>
+          <p className="text-xs text-gray-400">&copy; {new Date().getFullYear()} Andrew Koja. All rights reserved.</p>
+          <div className="flex items-center gap-4">
             <Link to="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy Policy</Link>
+            <a href="https://github.com/LightAnd2" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
+              <Github size={14} />
+            </a>
+            <a href="https://www.linkedin.com/in/andrewkoja" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600 transition-colors">
+              <Linkedin size={14} />
+            </a>
           </div>
         </div>
       </footer>
