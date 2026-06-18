@@ -1,6 +1,8 @@
 # LightAI
 
-> Uptime and latency monitoring for APIs and services. Trains a per-endpoint LSTM on collected data to detect anomalies and predict degradation — not just threshold checks.
+[![Backend Tests](https://github.com/LightAnd2/LightAI/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/LightAnd2/LightAI/actions/workflows/backend-tests.yml)
+
+> LightAI pings your endpoints, then trains a small LSTM on each one's history to flag anomalies and predict slowdowns before they turn into outages.
 
 **Live:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) · **API:** [lightai-production.up.railway.app](https://lightai-production.up.railway.app)
 
@@ -42,6 +44,20 @@ uvicorn simulator.server:app --port 8001
 ```
 
 The simulator auto-registers all 10 services with LightAI on startup.
+
+---
+
+## Tests
+
+The backend API is covered by a pytest suite that runs against an isolated
+in-memory database with the background scheduler stubbed out — no network calls,
+no torch required. The suite runs automatically on every push via GitHub Actions.
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
 
 ---
 
@@ -152,13 +168,43 @@ Compatible with Slack incoming webhooks, Discord, PagerDuty, or any custom endpo
 
 ## Deployment
 
+### Backend — Docker (any host)
+
+The backend ships with a `Dockerfile`, so it runs the same way on Fly, Render,
+a VPS, or locally:
+
+```bash
+cd backend
+docker build -t lightai .
+docker run -p 8000:8000 -v lightai-data:/data \
+  -e DATABASE_URL=sqlite:////data/lightai.db \
+  lightai
+```
+
+The `-v lightai-data:/data` volume keeps the SQLite database and trained model
+weights across restarts.
+
 ### Backend — Railway
 
 1. Push this repo to GitHub
 2. Create a new Railway project and connect the repo
 3. Railway reads `railway.toml` automatically — no additional config needed
 4. Generate a public domain in Railway → Settings → Networking
-5. Set `GITHUB_WEBHOOK_SECRET` if using GitHub deploy tracking
+5. Set the environment variables below as needed
+
+### Configuration
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` | Port the server binds to | `8000` |
+| `DATABASE_URL` | SQLite location (use a mounted volume in containers) | `sqlite:///./lightai.db` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS allowlist (your frontend URLs) | deployed site + localhost |
+| `LIGHTAI_API_KEY` | If set, `/api/ingest` requires a matching `X-API-Key` header | _(unset → ingest open)_ |
+| `GITHUB_WEBHOOK_SECRET` | If set, GitHub webhook signatures are verified | _(unset → skipped)_ |
+
+**Security notes:** URLs added for monitoring are validated against SSRF
+(http/https only; private, loopback, and link-local addresses — including the
+cloud metadata IP — are rejected). CORS is restricted to the configured origins.
 
 ### Frontend — Vercel
 

@@ -71,10 +71,10 @@ export default function Landing() {
             transition={{ duration: 0.25 }}
           >
             <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-3 leading-tight">
-              Know before it breaks.
+              Latency and uptime monitoring for your APIs
             </h1>
             <p className="text-base text-gray-500 max-w-xl leading-relaxed mb-7">
-              Uptime and latency monitoring for APIs and services. Trains a per-endpoint LSTM on collected data to catch anomalies and predict degradation. Not just threshold checks.
+              LightAI pings your endpoints, then trains a small model on each one&apos;s history to flag anomalies and predict slowdowns before they turn into outages.
             </p>
 
             <div className="flex items-center gap-3">

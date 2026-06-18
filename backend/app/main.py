@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
@@ -13,16 +14,17 @@ from db.queries import (
     get_all_endpoints, get_endpoint, create_endpoint, delete_endpoint,
     get_readings, get_incidents, get_anomalies, compute_uptime,
     get_incidents_this_month, get_latest_reading, get_model_info,
-    get_recent_readings, get_reading_count, get_global_stats
+    get_recent_readings, get_reading_count, get_global_stats, save_reading
 )
-from ml.predictor import predict_future
-from ml.retrain import retrain_all_endpoints
+# ml.predictor / ml.retrain (torch) are imported lazily where used so the app
+# can be imported and tested without the heavy ML dependencies installed.
 from app.monitor import scheduler, schedule_endpoint, unschedule_endpoint
 from app.websocket import manager
 from app.seed import seed_if_empty
 from app.rca import analyze_incident
 from app.drift import detect_drift, check_all_drift
 from app.github_webhook import router as github_router
+from app.security import validate_public_url, require_ingest_key
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ async def lifespan(app: FastAPI):
     init_db()
     from db.models import Base, engine
     from db.deploy_models import DeployEvent
+    from ml.retrain import retrain_all_endpoints
     Base.metadata.create_all(bind=engine)
     scheduler.add_job(retrain_all_endpoints, "interval", hours=24, id="daily_retrain", coalesce=True)
     scheduler.start()
@@ -51,9 +54,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="LightAI API", lifespan=lifespan)
 
+# Lock CORS to known frontends. Override in production via ALLOWED_ORIGINS
+# (comma-separated). Defaults cover the deployed site and local dev.
+_default_origins = "https://lightai-kohl.vercel.app,http://localhost:3000,http://localhost:5173"
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -110,6 +118,7 @@ def list_endpoints(db: Session = Depends(get_db)):
 
 @app.post("/api/endpoints", status_code=201)
 def add_endpoint(body: EndpointCreate, db: Session = Depends(get_db)):
+    validate_public_url(body.url)
     ep = create_endpoint(db, body.url, body.name, body.check_interval, body.alert_threshold, body.webhook_url)
     schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url)
     return endpoint_to_dict(ep, db)
@@ -214,6 +223,7 @@ def endpoint_predictions(endpoint_id: str, steps: int = 30, db: Session = Depend
         return {"predictions": [], "model_ready": False}
     recent = get_recent_readings(db, endpoint_id, limit=60)
     latencies = [r.latency_ms for r in reversed(recent) if r.latency_ms is not None]
+    from ml.predictor import predict_future
     preds = predict_future(model_info.model_path, model_info.scaler_path, latencies, steps)
     return {"predictions": preds, "model_ready": True}
 
@@ -230,7 +240,7 @@ class IngestPayload(BaseModel):
 
 
 @app.post("/api/ingest", status_code=202)
-async def ingest(payload: IngestPayload, db: Session = Depends(get_db)):
+async def ingest(payload: IngestPayload, db: Session = Depends(get_db), _: None = Depends(require_ingest_key)):
     ep = None
     if payload.endpoint_id:
         ep = get_endpoint(db, payload.endpoint_id)

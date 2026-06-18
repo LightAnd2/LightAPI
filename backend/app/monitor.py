@@ -11,9 +11,8 @@ from db.queries import (
     save_reading, get_recent_readings, get_model_info,
     get_reading_count, update_model_info, save_anomaly
 )
-from ml.lstm import MIN_READINGS
-from ml.trainer import train_model
-from ml.predictor import check_anomaly_lstm, check_anomaly_zscore
+# ML (torch) imports are loaded lazily inside the functions that need them, so
+# the API process can start without pulling in the heavy ML stack.
 from app.websocket import manager
 from app.incidents import handle_incident_lifecycle
 from app.alerts import send_down_alert, send_anomaly_alert
@@ -46,6 +45,9 @@ async def check_endpoint(endpoint_id: str, url: str, name: str, alert_threshold:
         anomaly_data = None
 
         if success and latency_ms is not None:
+            from ml.lstm import MIN_READINGS
+            from ml.predictor import check_anomaly_lstm, check_anomaly_zscore
+
             model_info = get_model_info(db, endpoint_id)
             recent = get_recent_readings(db, endpoint_id, limit=60)
             recent_latencies = [r.latency_ms for r in reversed(recent) if r.latency_ms is not None]
@@ -96,6 +98,9 @@ async def check_endpoint(endpoint_id: str, url: str, name: str, alert_threshold:
 
 
 async def _train_background(endpoint_id: str):
+    from ml.lstm import MIN_READINGS
+    from ml.trainer import train_model
+
     db: Session = SessionLocal()
     try:
         recent = get_recent_readings(db, endpoint_id, limit=2000)

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import { Plus, Activity } from 'lucide-react'
+import { Plus, Activity, CloudOff, RefreshCw } from 'lucide-react'
 import SettingsDropdown from '../components/SettingsDropdown'
 import { useEndpoints } from '../hooks/useEndpoints'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -53,10 +53,30 @@ function EmptyState({ onAdd }) {
   )
 }
 
+function BackendOffline({ onRetry }) {
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center max-w-sm">
+        <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <CloudOff size={22} className="text-status-down" />
+        </div>
+        <h2 className="text-sm font-semibold text-gray-900 mb-2">Can&apos;t reach the backend</h2>
+        <p className="text-sm text-gray-500 mb-5">
+          The monitoring API is currently unreachable. Live data and updates are paused until it&apos;s back online.
+        </p>
+        <button onClick={onRetry} className="btn-secondary inline-flex items-center gap-2">
+          <RefreshCw size={14} />
+          Retry
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { endpointId } = useParams()
   const navigate = useNavigate()
-  const { endpoints, loading, updateEndpoint, addEndpoint, removeEndpoint } = useEndpoints()
+  const { endpoints, loading, error, refetch, updateEndpoint, addEndpoint, removeEndpoint } = useEndpoints()
   const [globalStats, setGlobalStats] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -67,6 +87,7 @@ export default function Dashboard() {
   }, [])
 
   const activeEndpoint = endpoints.find((e) => e.id === endpointId) || endpoints[0] || null
+  const offline = !!error && endpoints.length === 0
 
   useEffect(() => {
     if (!endpointId && activeEndpoint) {
@@ -134,6 +155,8 @@ export default function Dashboard() {
                   <div key={i} className="h-12 rounded bg-gray-100 animate-pulse" />
                 ))}
               </div>
+            ) : offline ? (
+              <p className="text-xs text-status-down text-center mt-8 px-4">Backend unreachable.</p>
             ) : endpoints.length === 0 ? (
               <p className="text-xs text-gray-400 text-center mt-8 px-4">No endpoints. Add one to get started.</p>
             ) : (
@@ -157,6 +180,8 @@ export default function Dashboard() {
                 <div key={i} className="h-24 rounded-lg bg-white border border-border animate-pulse" />
               ))}
             </div>
+          ) : offline ? (
+            <BackendOffline onRetry={refetch} />
           ) : activeEndpoint ? (
             <EndpointDetail key={activeEndpoint.id} endpoint={activeEndpoint} />
           ) : (
