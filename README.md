@@ -4,7 +4,7 @@
 
 > LightAI pings your endpoints, then trains a small LSTM on each one's history to flag anomalies and predict slowdowns before they turn into outages.
 
-**Live:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) · **API:** [lightai-production.up.railway.app](https://lightai-production.up.railway.app)
+**Frontend:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) · **Backend:** run locally or self-host (see [Deployment](#deployment)) to populate live data
 
 **Stack:** `React` `FastAPI` `SQLite` `PyTorch` `APScheduler` `WebSocket`
 
@@ -104,13 +104,13 @@ async def fetch_prices(card_id: str):
 
 ```python
 from lightai import configure
-configure(url="https://your-backend.railway.app")
+configure(url="https://your-backend.example.com")
 ```
 
 Or via environment variable:
 
 ```bash
-export LIGHTAI_URL=https://your-backend.railway.app
+export LIGHTAI_URL=https://your-backend.example.com
 ```
 
 The decorator is fire-and-forget. It never blocks or crashes the wrapped function — if LightAI is unreachable, it silently skips the report.
@@ -124,7 +124,7 @@ LightAI watches your endpoints after every push and flags latency regressions ti
 **Setup**
 
 1. Go to your repo → **Settings** → **Webhooks** → **Add webhook**
-2. Set Payload URL to `https://your-backend.railway.app/api/webhooks/github`
+2. Set Payload URL to `https://your-backend.example.com/api/webhooks/github`
 3. Content type: `application/json`
 4. Trigger: **Just the push event**
 5. Save
@@ -184,13 +184,11 @@ docker run -p 8000:8000 -v lightai-data:/data \
 The `-v lightai-data:/data` volume keeps the SQLite database and trained model
 weights across restarts.
 
-### Backend — Railway
-
-1. Push this repo to GitHub
-2. Create a new Railway project and connect the repo
-3. Railway reads `railway.toml` automatically — no additional config needed
-4. Generate a public domain in Railway → Settings → Networking
-5. Set the environment variables below as needed
+The backend is a standard container, so it runs on any host that takes a
+Dockerfile — Fly.io, Render, a VPS, or Railway (a `railway.toml` is included for
+that path). Build the image as above, set the environment variables below, and
+expose the port. Use a persistent volume for `/data` so the SQLite database and
+trained model weights survive restarts.
 
 ### Configuration
 
@@ -219,8 +217,8 @@ vercel env add VITE_WS_URL production
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | Your Railway backend URL (e.g. `https://lightai-production.up.railway.app`) |
-| `VITE_WS_URL` | Same URL with `wss://` scheme (e.g. `wss://lightai-production.up.railway.app`) |
+| `VITE_API_URL` | Your backend URL (e.g. `https://your-backend.example.com`) |
+| `VITE_WS_URL` | Same URL with `wss://` scheme (e.g. `wss://your-backend.example.com`) |
 
 4. Redeploy: `vercel --cwd frontend --prod`
 
@@ -258,11 +256,14 @@ Each endpoint has its own subscription list. New readings are broadcast only to 
 lightai/
 ├── frontend/              React + Vite + Tailwind
 ├── backend/
-│   ├── app/               FastAPI routes, monitor loop, WebSocket, RCA, drift, alerts
+│   ├── app/               FastAPI routes, monitor loop, WebSocket, RCA, drift, alerts, security
 │   ├── ml/                LSTM model, trainer, predictor, daily retraining
 │   ├── db/                SQLAlchemy models and query helpers
-│   └── simulator/         Synthetic load generator (10 procedural services)
+│   ├── simulator/         Synthetic load generator (10 procedural services)
+│   ├── tests/             pytest API suite (run in CI)
+│   └── Dockerfile         Container image for any host
 ├── lightai-sdk/           pip-installable @monitor decorator
+├── .github/workflows/     GitHub Actions CI (backend tests)
 ├── vercel.json
 └── railway.toml
 ```
@@ -274,16 +275,20 @@ lightai/
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/endpoints` | List all endpoints |
-| `POST` | `/api/endpoints` | Add an endpoint |
+| `POST` | `/api/endpoints` | Add an endpoint (URL validated against SSRF) |
+| `GET` | `/api/endpoints/:id` | Endpoint detail |
 | `DELETE` | `/api/endpoints/:id` | Remove an endpoint |
 | `GET` | `/api/endpoints/:id/readings` | Latency readings (`?range=1h\|24h\|7d\|30d\|90d`) |
 | `GET` | `/api/endpoints/:id/incidents` | Incident log |
 | `GET` | `/api/endpoints/:id/anomalies` | Anomaly events |
 | `GET` | `/api/endpoints/:id/stats` | Uptime, latency stats, model status |
 | `GET` | `/api/endpoints/:id/drift` | Baseline drift analysis |
+| `GET` | `/api/endpoints/:id/rca/:incidentId` | Root cause analysis for an incident |
 | `GET` | `/api/endpoints/:id/deploys` | Deploy history |
 | `GET` | `/api/endpoints/:id/predictions` | LSTM forecast (next N values) |
-| `POST` | `/api/ingest` | SDK readings ingest |
+| `GET` | `/api/stats` | Global stats (totals, uptime, active incidents) |
+| `GET` | `/api/drift` | Drift summary across all endpoints |
+| `POST` | `/api/ingest` | SDK readings ingest (optional `X-API-Key`) |
 | `POST` | `/api/webhooks/github` | GitHub push event receiver |
 | `WS` | `/ws/:id` | Per-endpoint real-time feed |
 | `WS` | `/ws` | Global feed (all endpoints) |
