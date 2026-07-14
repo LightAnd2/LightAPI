@@ -71,10 +71,10 @@ def detect_drift(db: Session, endpoint_id: str) -> Optional[dict]:
     }
 
 
-def check_all_drift(db: Session) -> list[dict]:
+def check_all_drift(db: Session, workspace_id: str = "demo") -> list[dict]:
     from db.queries import get_all_endpoints
     results = []
-    for ep in get_all_endpoints(db):
+    for ep in get_all_endpoints(db, workspace_id):
         drift = detect_drift(db, ep.id)
         if drift and drift["status"] != "stable":
             results.append({"endpoint_id": ep.id, "endpoint_name": ep.name, **drift})

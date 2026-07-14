@@ -48,11 +48,31 @@ def client(monkeypatch):
     main.app.dependency_overrides.clear()
 
 
+SAMPLE_WS = "test-ws"
+
+
+@pytest.fixture
+def db_session():
+    """A raw DB session on a fresh in-memory database, for testing helpers directly."""
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @pytest.fixture
 def sample_endpoint(client):
-    """Create one endpoint and return its JSON."""
+    """Create one endpoint in a private (non-demo) workspace and return its JSON."""
     resp = client.post(
-        "/api/endpoints",
+        f"/api/endpoints?workspace={SAMPLE_WS}",
         json={"url": "https://example.com/health", "name": "example-api"},
     )
     assert resp.status_code == 201

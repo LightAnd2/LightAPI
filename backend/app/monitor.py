@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 
-async def check_endpoint(endpoint_id: str, url: str, name: str, alert_threshold: int, webhook_url: Optional[str]):
+async def check_endpoint(endpoint_id: str, url: str, name: str, alert_threshold: int, webhook_url: Optional[str], workspace_id: str = "demo"):
     start = time.monotonic()
     latency_ms: Optional[float] = None
     status_code: Optional[int] = None
@@ -92,7 +92,7 @@ async def check_endpoint(endpoint_id: str, url: str, name: str, alert_threshold:
                 "drift": drift_data if drift_data and drift_data.get("status") not in ("stable", "insufficient_data") else None,
             },
         }
-        await manager.broadcast(message, endpoint_id)
+        await manager.broadcast(message, endpoint_id, workspace_id)
     finally:
         db.close()
 
@@ -116,7 +116,7 @@ async def _train_background(endpoint_id: str):
         db.close()
 
 
-def schedule_endpoint(endpoint_id: str, url: str, name: str, check_interval: int, alert_threshold: int, webhook_url: Optional[str]):
+def schedule_endpoint(endpoint_id: str, url: str, name: str, check_interval: int, alert_threshold: int, webhook_url: Optional[str], workspace_id: str = "demo"):
     job_id = f"monitor_{endpoint_id}"
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
@@ -125,7 +125,7 @@ def schedule_endpoint(endpoint_id: str, url: str, name: str, check_interval: int
         "interval",
         seconds=check_interval,
         id=job_id,
-        args=[endpoint_id, url, name, alert_threshold, webhook_url],
+        args=[endpoint_id, url, name, alert_threshold, webhook_url, workspace_id],
         max_instances=1,
         coalesce=True,
     )

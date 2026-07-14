@@ -14,16 +14,19 @@ RANGE_MAP = {
 }
 
 
-def get_all_endpoints(db: Session):
-    return db.query(Endpoint).filter(Endpoint.is_active == True).all()
+def get_all_endpoints(db: Session, workspace_id: Optional[str] = None):
+    q = db.query(Endpoint).filter(Endpoint.is_active == True)
+    if workspace_id is not None:
+        q = q.filter(Endpoint.workspace_id == workspace_id)
+    return q.all()
 
 
 def get_endpoint(db: Session, endpoint_id: str) -> Optional[Endpoint]:
     return db.query(Endpoint).filter(Endpoint.id == endpoint_id).first()
 
 
-def create_endpoint(db: Session, url: str, name: str, check_interval: int, alert_threshold: int, webhook_url: Optional[str]) -> Endpoint:
-    ep = Endpoint(url=url, name=name, check_interval=check_interval, alert_threshold=alert_threshold, webhook_url=webhook_url)
+def create_endpoint(db: Session, url: str, name: str, check_interval: int, alert_threshold: int, webhook_url: Optional[str], workspace_id: str = "demo") -> Endpoint:
+    ep = Endpoint(url=url, name=name, check_interval=check_interval, alert_threshold=alert_threshold, webhook_url=webhook_url, workspace_id=workspace_id)
     db.add(ep)
     db.flush()
     model_info = EndpointModel(endpoint_id=ep.id)
@@ -179,7 +182,14 @@ def get_reading_count(db: Session, endpoint_id: str) -> int:
     return db.query(func.count(Reading.id)).filter(Reading.endpoint_id == endpoint_id).scalar() or 0
 
 
-def get_global_stats(db: Session) -> dict:
-    total = db.query(func.count(Endpoint.id)).filter(Endpoint.is_active == True).scalar() or 0
-    active_incidents = db.query(func.count(Incident.id)).filter(Incident.is_resolved == False).scalar() or 0
-    return {"total_endpoints": total, "active_incidents": active_incidents}
+def get_global_stats(db: Session, workspace_id: Optional[str] = None) -> dict:
+    ep_q = db.query(func.count(Endpoint.id)).filter(Endpoint.is_active == True)
+    inc_q = (
+        db.query(func.count(Incident.id))
+        .join(Endpoint, Incident.endpoint_id == Endpoint.id)
+        .filter(Incident.is_resolved == False)
+    )
+    if workspace_id is not None:
+        ep_q = ep_q.filter(Endpoint.workspace_id == workspace_id)
+        inc_q = inc_q.filter(Endpoint.workspace_id == workspace_id)
+    return {"total_endpoints": ep_q.scalar() or 0, "active_incidents": inc_q.scalar() or 0}

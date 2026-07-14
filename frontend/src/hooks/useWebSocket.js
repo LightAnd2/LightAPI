@@ -16,6 +16,7 @@ export function useWebSocket(path, onMessage) {
       wsRef.current.onclose = null
       wsRef.current.close()
     }
+    if (!path) return // no workspace resolved yet — don't open a connection
     const ws = new WebSocket(`${WS_BASE}${path}`)
     wsRef.current = ws
 

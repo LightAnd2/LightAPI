@@ -10,18 +10,22 @@ logger = logging.getLogger(__name__)
 _config = {
     "url": os.getenv("LIGHTAI_URL", "http://localhost:8000"),
     "api_key": os.getenv("LIGHTAI_API_KEY", ""),
+    "workspace": os.getenv("LIGHTAI_WORKSPACE", "demo"),
 }
 
 
-def configure(url: str = None, api_key: str = None):
+def configure(url: str = None, api_key: str = None, workspace: str = None):
     if url:
         _config["url"] = url.rstrip("/")
     if api_key:
         _config["api_key"] = api_key
+    if workspace:
+        _config["workspace"] = workspace
 
 
 def _send(payload: dict):
     try:
+        payload.setdefault("workspace", _config["workspace"])
         body = json.dumps(payload).encode()
         headers = {"Content-Type": "application/json"}
         if _config["api_key"]:

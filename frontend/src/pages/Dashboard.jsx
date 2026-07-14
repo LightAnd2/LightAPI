@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
-import { Plus, Activity, CloudOff, RefreshCw } from 'lucide-react'
+import { Plus, Activity, CloudOff, RefreshCw, Link2, Check } from 'lucide-react'
 import SettingsDropdown from '../components/SettingsDropdown'
 import { useEndpoints } from '../hooks/useEndpoints'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -31,6 +31,28 @@ function GlobalStats({ stats }) {
         </p>
       </div>
     </div>
+  )
+}
+
+function WorkspaceChip({ wsId }) {
+  const [copied, setCopied] = useState(false)
+  if (!wsId) return null
+
+  const copy = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/dashboard?ws=${wsId}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <button
+      onClick={copy}
+      title="Copy this workspace's link. Treat it like a password — anyone who has it can view and edit this workspace."
+      className="flex items-center gap-1.5 px-2 py-1 rounded border border-border text-xs font-mono text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+    >
+      {copied ? <Check size={12} className="text-status-healthy" /> : <Link2 size={12} />}
+      {copied ? 'copied' : wsId}
+    </button>
   )
 }
 
@@ -79,8 +101,10 @@ export default function Dashboard() {
   const { endpoints, loading, error, refetch, updateEndpoint, addEndpoint, removeEndpoint } = useEndpoints()
   const [globalStats, setGlobalStats] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [wsId, setWsId] = useState(null)
 
   useEffect(() => {
+    api.getWorkspace().then(setWsId).catch(() => {})
     api.getGlobalStats().then(setGlobalStats).catch(() => {})
     const id = setInterval(() => api.getGlobalStats().then(setGlobalStats).catch(() => {}), 15000)
     return () => clearInterval(id)
@@ -108,7 +132,7 @@ export default function Dashboard() {
     updateEndpoint(endpoint_id, patch)
   }, [endpoints, updateEndpoint])
 
-  useWebSocket('/ws', handleWsMessage)
+  useWebSocket(wsId ? `/ws?workspace=${encodeURIComponent(wsId)}` : null, handleWsMessage)
 
   const handleAdded = (ep) => {
     addEndpoint(ep)
@@ -128,10 +152,13 @@ export default function Dashboard() {
             <span className="text-base font-bold text-gray-900 tracking-tight">LightAI</span>
           </Link>
           <GlobalStats stats={globalStats} />
-          <SettingsDropdown
-            activeEndpoint={activeEndpoint}
-            onDeleted={(id) => { removeEndpoint(id); navigate('/dashboard') }}
-          />
+          <div className="flex items-center gap-3">
+            <WorkspaceChip wsId={wsId} />
+            <SettingsDropdown
+              activeEndpoint={activeEndpoint}
+              onDeleted={(id) => { removeEndpoint(id); navigate('/dashboard') }}
+            />
+          </div>
         </div>
       </header>
 

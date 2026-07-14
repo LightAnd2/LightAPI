@@ -46,7 +46,7 @@ export default function Landing() {
   const [endpoints, setEndpoints] = useState([])
 
   useEffect(() => {
-    api.getEndpoints().then(setEndpoints).catch(() => {})
+    api.getEndpoints('demo').then(setEndpoints).catch(() => {})
   }, [])
 
   return (
@@ -81,7 +81,7 @@ export default function Landing() {
               <Link to="/dashboard" className="btn-primary px-5 py-2 text-sm">
                 Open Dashboard
               </Link>
-              <Link to="/dashboard" className="btn-secondary px-5 py-2 text-sm">
+              <Link to="/dashboard?ws=demo" className="btn-secondary px-5 py-2 text-sm">
                 View Demo
               </Link>
             </div>

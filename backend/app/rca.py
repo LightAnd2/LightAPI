@@ -4,14 +4,18 @@ all other monitored endpoints to determine if the failure is isolated or shared.
 """
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from db.queries import get_all_endpoints, get_readings
+from db.queries import get_all_endpoints, get_readings, get_endpoint
 
 
 CORRELATION_WINDOW_SECONDS = 120
 
 
 def analyze_incident(db: Session, affected_endpoint_id: str, incident_time: datetime) -> dict:
-    all_endpoints = get_all_endpoints(db)
+    # Correlate only within the affected endpoint's workspace — never surface
+    # other workspaces' endpoint names or URLs in the analysis.
+    affected = get_endpoint(db, affected_endpoint_id)
+    workspace_id = affected.workspace_id if affected else "demo"
+    all_endpoints = get_all_endpoints(db, workspace_id)
     others = [ep for ep in all_endpoints if ep.id != affected_endpoint_id]
 
     window_start = incident_time - timedelta(seconds=CORRELATION_WINDOW_SECONDS)

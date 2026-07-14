@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
         seed_if_empty(db)
         endpoints = get_all_endpoints(db)
         for ep in endpoints:
-            schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url)
+            schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url, ep.workspace_id)
         logger.info(f"Scheduled {len(endpoints)} endpoints for monitoring")
     finally:
         db.close()
@@ -76,6 +76,21 @@ class EndpointCreate(BaseModel):
     check_interval: int = 30
     alert_threshold: int = 500
     webhook_url: Optional[str] = None
+
+
+@app.post("/api/workspaces", status_code=201)
+def create_workspace():
+    """
+    Mint a new workspace id. Workspaces are implicit — an id simply namespaces
+    the endpoints created under it, giving each visitor their own space without
+    accounts or passwords (the shareable-link model).
+
+    The id is the capability: anyone who has it can access the workspace, so it
+    must be unguessable. 96 bits of cryptographic randomness makes enumeration
+    infeasible.
+    """
+    import secrets
+    return {"id": secrets.token_urlsafe(12)}
 
 
 def endpoint_to_dict(ep, db: Session) -> dict:
@@ -111,16 +126,16 @@ def endpoint_to_dict(ep, db: Session) -> dict:
 
 
 @app.get("/api/endpoints")
-def list_endpoints(db: Session = Depends(get_db)):
-    endpoints = get_all_endpoints(db)
+def list_endpoints(workspace: str = "demo", db: Session = Depends(get_db)):
+    endpoints = get_all_endpoints(db, workspace)
     return [endpoint_to_dict(ep, db) for ep in endpoints]
 
 
 @app.post("/api/endpoints", status_code=201)
-def add_endpoint(body: EndpointCreate, db: Session = Depends(get_db)):
+def add_endpoint(body: EndpointCreate, workspace: str = "demo", db: Session = Depends(get_db)):
     validate_public_url(body.url)
-    ep = create_endpoint(db, body.url, body.name, body.check_interval, body.alert_threshold, body.webhook_url)
-    schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url)
+    ep = create_endpoint(db, body.url, body.name, body.check_interval, body.alert_threshold, body.webhook_url, workspace_id=workspace)
+    schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url, ep.workspace_id)
     return endpoint_to_dict(ep, db)
 
 
@@ -134,9 +149,15 @@ def get_endpoint_detail(endpoint_id: str, db: Session = Depends(get_db)):
 
 @app.delete("/api/endpoints/{endpoint_id}", status_code=204)
 def remove_endpoint(endpoint_id: str, db: Session = Depends(get_db)):
-    unschedule_endpoint(endpoint_id)
-    if not delete_endpoint(db, endpoint_id):
+    ep = get_endpoint(db, endpoint_id)
+    if not ep:
         raise HTTPException(404, "Endpoint not found")
+    # The demo workspace is the only publicly-known one — protect its seeded
+    # endpoints from vandalism. Visitors can still add and monitor endpoints.
+    if ep.workspace_id == "demo":
+        raise HTTPException(403, "Demo endpoints can't be deleted — create your own workspace")
+    unschedule_endpoint(endpoint_id)
+    delete_endpoint(db, endpoint_id)
 
 
 @app.get("/api/endpoints/{endpoint_id}/readings")
@@ -231,6 +252,7 @@ def endpoint_predictions(endpoint_id: str, steps: int = 30, db: Session = Depend
 class IngestPayload(BaseModel):
     name: str
     endpoint_id: Optional[str] = None
+    workspace: str = "demo"
     timestamp: Optional[str] = None
     latency_ms: float
     success: bool = True
@@ -245,7 +267,7 @@ async def ingest(payload: IngestPayload, db: Session = Depends(get_db), _: None 
     if payload.endpoint_id:
         ep = get_endpoint(db, payload.endpoint_id)
     if not ep:
-        endpoints = get_all_endpoints(db)
+        endpoints = get_all_endpoints(db, payload.workspace)
         for e in endpoints:
             if payload.name.lower() in e.name.lower() or payload.name.lower() in e.url.lower():
                 ep = e
@@ -258,6 +280,7 @@ async def ingest(payload: IngestPayload, db: Session = Depends(get_db), _: None 
             check_interval=0,
             alert_threshold=payload.threshold_ms or 500,
             webhook_url=None,
+            workspace_id=payload.workspace,
         )
 
     reading = save_reading(db, ep.id, payload.latency_ms, payload.status_code, payload.success)
@@ -274,14 +297,14 @@ async def ingest(payload: IngestPayload, db: Session = Depends(get_db), _: None 
             "incident": None,
         },
     }
-    await manager.broadcast(message, ep.id)
+    await manager.broadcast(message, ep.id, ep.workspace_id)
     return {"status": "accepted", "endpoint_id": ep.id}
 
 
 @app.get("/api/stats")
-def global_stats(db: Session = Depends(get_db)):
-    stats = get_global_stats(db)
-    endpoints = get_all_endpoints(db)
+def global_stats(workspace: str = "demo", db: Session = Depends(get_db)):
+    stats = get_global_stats(db, workspace)
+    endpoints = get_all_endpoints(db, workspace)
     uptimes = [compute_uptime(db, ep.id, 1) for ep in endpoints]
     global_uptime = round(sum(uptimes) / len(uptimes), 2) if uptimes else 100.0
     stats["global_uptime"] = global_uptime
@@ -313,8 +336,8 @@ def endpoint_drift(endpoint_id: str, db: Session = Depends(get_db)):
 
 
 @app.get("/api/drift")
-def all_drift(db: Session = Depends(get_db)):
-    return check_all_drift(db)
+def all_drift(workspace: str = "demo", db: Session = Depends(get_db)):
+    return check_all_drift(db, workspace)
 
 
 @app.websocket("/ws/{endpoint_id}")
@@ -328,10 +351,10 @@ async def websocket_endpoint(websocket: WebSocket, endpoint_id: str):
 
 
 @app.websocket("/ws")
-async def websocket_global(websocket: WebSocket):
-    await manager.connect_global(websocket)
+async def websocket_global(websocket: WebSocket, workspace: str = "demo"):
+    await manager.connect_global(websocket, workspace)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect_global(websocket)
+        manager.disconnect_global(websocket, workspace)

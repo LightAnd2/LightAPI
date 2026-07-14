@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from db.models import SessionLocal
 from db.deploy_models import DeployEvent
-from db.queries import get_all_endpoints, get_readings
+from db.queries import get_all_endpoints, get_readings, get_endpoint
 from app.websocket import manager
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,10 @@ def _verify_signature(payload: bytes, signature: str) -> bool:
     return hmac.compare_digest(expected, signature or "")
 
 
-def _find_matching_endpoint(db: Session, repo_name: str, pusher: str) -> Optional[str]:
-    endpoints = get_all_endpoints(db)
+def _find_matching_endpoint(db: Session, repo_name: str, pusher: str, workspace_id: str) -> Optional[str]:
+    # Only ever match endpoints inside the workspace the webhook is bound to,
+    # so a deploy event can never attach to another workspace's endpoint.
+    endpoints = get_all_endpoints(db, workspace_id)
     repo_lower = repo_name.lower()
     for ep in endpoints:
         if repo_lower in ep.name.lower() or repo_lower in ep.url.lower():
@@ -103,7 +105,8 @@ async def _run_post_deploy_analysis(deploy_id: str, endpoint_id: str, deployed_a
                 ),
             },
         }
-        await manager.broadcast(message, endpoint_id)
+        ep = get_endpoint(db, endpoint_id)
+        await manager.broadcast(message, endpoint_id, ep.workspace_id if ep else "demo")
         logger.info(f"Deploy analysis complete for {deploy_id}: regression={regression_detected}")
 
     except Exception as e:
@@ -113,7 +116,7 @@ async def _run_post_deploy_analysis(deploy_id: str, endpoint_id: str, deployed_a
 
 
 @router.post("/api/webhooks/github")
-async def github_webhook(request: Request):
+async def github_webhook(request: Request, workspace: str = "demo"):
     body = await request.body()
     sig = request.headers.get("X-Hub-Signature-256", "")
     if WEBHOOK_SECRET and not _verify_signature(body, sig):
@@ -143,7 +146,7 @@ async def github_webhook(request: Request):
 
     db: Session = SessionLocal()
     try:
-        endpoint_id = _find_matching_endpoint(db, repo, pusher)
+        endpoint_id = _find_matching_endpoint(db, repo, pusher, workspace)
 
         pre_baseline = None
         if endpoint_id:
@@ -169,6 +172,7 @@ async def github_webhook(request: Request):
 
         if endpoint_id:
             asyncio.create_task(_run_post_deploy_analysis(deploy_id, endpoint_id, deployed_at, pre_baseline))
+            matched_ep = get_endpoint(db, endpoint_id)
             await manager.broadcast({
                 "type": "deploy_started",
                 "endpoint_id": endpoint_id,
@@ -182,7 +186,7 @@ async def github_webhook(request: Request):
                     "pre_deploy_baseline_ms": pre_baseline,
                     "message": f"Deploy detected — monitoring for regressions for 10 minutes",
                 },
-            }, endpoint_id)
+            }, endpoint_id, matched_ep.workspace_id if matched_ep else "demo")
 
     finally:
         db.close()

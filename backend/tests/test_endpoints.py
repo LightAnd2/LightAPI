@@ -1,4 +1,5 @@
 """API tests for endpoint CRUD, validation, and the SDK ingest flow."""
+from conftest import SAMPLE_WS
 
 
 def test_list_endpoints_empty(client):
@@ -45,7 +46,7 @@ def test_create_endpoint_validation_error(client):
 
 
 def test_list_after_create(client, sample_endpoint):
-    resp = client.get("/api/endpoints")
+    resp = client.get(f"/api/endpoints?workspace={SAMPLE_WS}")
     assert resp.status_code == 200
     names = [e["name"] for e in resp.json()]
     assert "example-api" in names
@@ -86,7 +87,7 @@ def test_readings_empty_for_new_endpoint(client, sample_endpoint):
 
 
 def test_global_stats(client, sample_endpoint):
-    resp = client.get("/api/stats")
+    resp = client.get(f"/api/stats?workspace={SAMPLE_WS}")
     assert resp.status_code == 200
     body = resp.json()
     assert body["total_endpoints"] == 1
@@ -115,10 +116,11 @@ def test_ingest_creates_endpoint_and_reading(client):
 
 
 def test_ingest_matches_existing_endpoint(client, sample_endpoint):
-    # "example" matches the sample endpoint named "example-api" by substring.
+    # "example" matches the sample endpoint named "example-api" by substring,
+    # within the same workspace.
     resp = client.post(
         "/api/ingest",
-        json={"name": "example", "latency_ms": 99.0},
+        json={"name": "example", "latency_ms": 99.0, "workspace": SAMPLE_WS},
     )
     assert resp.status_code == 202
     assert resp.json()["endpoint_id"] == sample_endpoint["id"]

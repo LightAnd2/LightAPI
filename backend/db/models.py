@@ -24,12 +24,24 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    _migrate_add_workspace_column()
+
+
+def _migrate_add_workspace_column():
+    """Add endpoints.workspace_id to databases created before workspaces existed."""
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        cols = [row[1] for row in conn.execute(text("PRAGMA table_info(endpoints)"))]
+        if cols and "workspace_id" not in cols:
+            conn.execute(text("ALTER TABLE endpoints ADD COLUMN workspace_id TEXT NOT NULL DEFAULT 'demo'"))
+            conn.commit()
 
 
 class Endpoint(Base):
     __tablename__ = "endpoints"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    workspace_id = Column(String, nullable=False, default="demo", index=True)
     url = Column(String, nullable=False)
     name = Column(String, nullable=False)
     check_interval = Column(Integer, default=30)

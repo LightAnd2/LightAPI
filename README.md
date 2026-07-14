@@ -104,13 +104,14 @@ async def fetch_prices(card_id: str):
 
 ```python
 from lightai import configure
-configure(url="https://your-backend.example.com")
+configure(url="https://your-backend.example.com", workspace="your-workspace-id")
 ```
 
-Or via environment variable:
+Or via environment variables:
 
 ```bash
 export LIGHTAI_URL=https://your-backend.example.com
+export LIGHTAI_WORKSPACE=your-workspace-id   # shown in the dashboard header
 ```
 
 The decorator is fire-and-forget. It never blocks or crashes the wrapped function — if LightAI is unreachable, it silently skips the report.
@@ -124,7 +125,7 @@ LightAI watches your endpoints after every push and flags latency regressions ti
 **Setup**
 
 1. Go to your repo → **Settings** → **Webhooks** → **Add webhook**
-2. Set Payload URL to `https://your-backend.example.com/api/webhooks/github`
+2. Set Payload URL to `https://your-backend.example.com/api/webhooks/github?workspace=<your-workspace-id>` — the workspace id (shown in the dashboard header) binds deploys to your workspace and acts as the key, so events never attach to anyone else's endpoints
 3. Content type: `application/json`
 4. Trigger: **Just the push event**
 5. Save
@@ -226,6 +227,11 @@ vercel env add VITE_WS_URL production
 
 ## How It Works
 
+**Workspaces**
+Every visitor gets their own workspace on first visit — no signup. The id lives in the browser and in a shareable link (`/dashboard?ws=<id>`), and all endpoints, readings, and incidents are scoped to it. Opening someone else's link (like the demo) views their workspace without touching yours.
+
+Workspace links are **capability URLs**: the id is 96 bits of cryptographic randomness (unguessable), but anyone you give the link to can view *and edit* that workspace — treat it like a password. The public `demo` workspace is delete-protected so it can't be vandalized. Real accounts are the natural upgrade path if you need per-person permissions.
+
 **Monitoring loop**
 APScheduler runs an async job per endpoint on the configured interval. Each ping records latency, status code, and success into SQLite, indexed on `(endpoint_id, timestamp)` for fast range queries.
 
@@ -272,10 +278,16 @@ lightai/
 
 ## API Reference
 
+All endpoint data is namespaced by **workspace** — every visitor gets their own
+space (a generated id kept in the browser and shareable via `/dashboard?ws=<id>`),
+so one deployment serves any number of users and projects without accounts.
+Scoped routes take `?workspace=<id>` and default to the `demo` workspace.
+
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/endpoints` | List all endpoints |
-| `POST` | `/api/endpoints` | Add an endpoint (URL validated against SSRF) |
+| `POST` | `/api/workspaces` | Mint a new workspace id |
+| `GET` | `/api/endpoints` | List endpoints (`?workspace=`) |
+| `POST` | `/api/endpoints` | Add an endpoint (`?workspace=`, URL validated against SSRF) |
 | `GET` | `/api/endpoints/:id` | Endpoint detail |
 | `DELETE` | `/api/endpoints/:id` | Remove an endpoint |
 | `GET` | `/api/endpoints/:id/readings` | Latency readings (`?range=1h\|24h\|7d\|30d\|90d`) |
@@ -286,12 +298,12 @@ lightai/
 | `GET` | `/api/endpoints/:id/rca/:incidentId` | Root cause analysis for an incident |
 | `GET` | `/api/endpoints/:id/deploys` | Deploy history |
 | `GET` | `/api/endpoints/:id/predictions` | LSTM forecast (next N values) |
-| `GET` | `/api/stats` | Global stats (totals, uptime, active incidents) |
+| `GET` | `/api/stats` | Workspace stats (`?workspace=`; totals, uptime, active incidents) |
 | `GET` | `/api/drift` | Drift summary across all endpoints |
-| `POST` | `/api/ingest` | SDK readings ingest (optional `X-API-Key`) |
-| `POST` | `/api/webhooks/github` | GitHub push event receiver |
+| `POST` | `/api/ingest` | SDK readings ingest (optional `X-API-Key`; `workspace` in payload) |
+| `POST` | `/api/webhooks/github` | GitHub push event receiver (`?workspace=`) |
 | `WS` | `/ws/:id` | Per-endpoint real-time feed |
-| `WS` | `/ws` | Global feed (all endpoints) |
+| `WS` | `/ws` | Workspace live feed (`?workspace=`) |
 
 ---
 
