@@ -149,7 +149,7 @@ export default function Dashboard() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-msu-green">
               <polyline points="2,14 5,14 7,6 9,20 11,11 13,9 15,15 17,14 22,14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="text-base font-bold text-gray-900 tracking-tight">LightAI</span>
+            <span className="text-base font-bold text-gray-900 tracking-tight">LightAPI</span>
           </Link>
           <GlobalStats stats={globalStats} />
           <div className="flex items-center gap-3">

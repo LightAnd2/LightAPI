@@ -41,10 +41,17 @@ def client(monkeypatch):
     # SSRF behaviour is covered directly in test_security.py.
     monkeypatch.setattr(main, "validate_public_url", lambda *a, **k: None)
 
+    # Reset per-IP rate-limiter state so counts don't leak across tests
+    # (all TestClient requests share one client IP).
+    for lim in (main.workspace_limiter, main.endpoint_limiter, main.ingest_limiter):
+        lim._hits.clear()
+
     main.app.dependency_overrides[get_db] = override_get_db
     # TestClient is NOT used as a context manager, so the app's lifespan
     # (scheduler start + seeding) never runs.
-    yield TestClient(main.app)
+    tc = TestClient(main.app)
+    tc.session_factory = TestingSessionLocal  # exposed so tests can seed rows
+    yield tc
     main.app.dependency_overrides.clear()
 
 

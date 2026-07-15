@@ -53,6 +53,19 @@ async function scoped(path, options) {
 }
 
 export const api = {
+  // Public API directory (discovery) — not workspace-scoped
+  getDirectory: ({ category, search, auth, httpsOnly, limit = 60, offset = 0 } = {}) => {
+    const p = new URLSearchParams()
+    if (category) p.set('category', category)
+    if (search) p.set('search', search)
+    if (auth) p.set('auth', auth)
+    if (httpsOnly) p.set('https_only', 'true')
+    p.set('limit', limit)
+    p.set('offset', offset)
+    return request(`/api/directory?${p.toString()}`)
+  },
+  getDirectoryCategories: () => request('/api/directory/categories'),
+
   // Workspace-scoped
   getEndpoints: (workspace) =>
     workspace

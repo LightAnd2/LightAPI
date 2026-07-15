@@ -37,6 +37,24 @@ def _migrate_add_workspace_column():
             conn.commit()
 
 
+class DirectoryApi(Base):
+    """A public API in the discovery directory (sourced from public-apis)."""
+    __tablename__ = "directory_apis"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    description = Column(Text, default="")
+    auth = Column(String, default="None")
+    https = Column(Boolean, default=False)
+    cors = Column(String, default="unknown")
+    category = Column(String, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("idx_directory_category_name", "category", "name"),
+    )
+
+
 class Endpoint(Base):
     __tablename__ = "endpoints"
 

@@ -2,9 +2,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Optional
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -14,7 +14,8 @@ from db.queries import (
     get_all_endpoints, get_endpoint, create_endpoint, delete_endpoint,
     get_readings, get_incidents, get_anomalies, compute_uptime,
     get_incidents_this_month, get_latest_reading, get_model_info,
-    get_recent_readings, get_reading_count, get_global_stats, save_reading
+    get_recent_readings, get_reading_count, get_global_stats, save_reading,
+    list_directory, directory_categories, directory_count
 )
 # ml.predictor / ml.retrain (torch) are imported lazily where used so the app
 # can be imported and tested without the heavy ML dependencies installed.
@@ -25,6 +26,7 @@ from app.rca import analyze_incident
 from app.drift import detect_drift, check_all_drift
 from app.github_webhook import router as github_router
 from app.security import validate_public_url, require_ingest_key
+from app.ratelimit import RateLimiter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,12 +38,23 @@ async def lifespan(app: FastAPI):
     from db.models import Base, engine
     from db.deploy_models import DeployEvent
     from ml.retrain import retrain_all_endpoints
+    from app.directory import seed_directory_if_empty, refresh_directory_from_github
     Base.metadata.create_all(bind=engine)
     scheduler.add_job(retrain_all_endpoints, "interval", hours=24, id="daily_retrain", coalesce=True)
+
+    async def _refresh_directory_job():
+        db = next(get_db())
+        try:
+            await refresh_directory_from_github(db)
+        finally:
+            db.close()
+
+    scheduler.add_job(_refresh_directory_job, "interval", hours=24, id="directory_refresh", coalesce=True)
     scheduler.start()
     db = next(get_db())
     try:
         seed_if_empty(db)
+        seed_directory_if_empty(db)
         endpoints = get_all_endpoints(db)
         for ep in endpoints:
             schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url, ep.workspace_id)
@@ -52,7 +65,18 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 
-app = FastAPI(title="LightAI API", lifespan=lifespan)
+app = FastAPI(title="LightAPI", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return resp
+
 
 # Lock CORS to known frontends. Override in production via ALLOWED_ORIGINS
 # (comma-separated). Defaults cover the deployed site and local dev.
@@ -70,15 +94,23 @@ app.add_middleware(
 app.include_router(github_router)
 
 
+MAX_ENDPOINTS_PER_WORKSPACE = 25
+
+# Named rate limiters (per client IP). Exposed so tests can reset their state.
+workspace_limiter = RateLimiter(20, 60)
+endpoint_limiter = RateLimiter(30, 60)
+ingest_limiter = RateLimiter(240, 60)
+
+
 class EndpointCreate(BaseModel):
-    url: str
-    name: str
-    check_interval: int = 30
-    alert_threshold: int = 500
-    webhook_url: Optional[str] = None
+    url: str = Field(min_length=1, max_length=2048)
+    name: str = Field(min_length=1, max_length=120)
+    check_interval: int = Field(default=30, ge=10, le=3600)
+    alert_threshold: int = Field(default=500, ge=1, le=120000)
+    webhook_url: Optional[str] = Field(default=None, max_length=2048)
 
 
-@app.post("/api/workspaces", status_code=201)
+@app.post("/api/workspaces", status_code=201, dependencies=[Depends(workspace_limiter)])
 def create_workspace():
     """
     Mint a new workspace id. Workspaces are implicit — an id simply namespaces
@@ -125,14 +157,42 @@ def endpoint_to_dict(ep, db: Session) -> dict:
     }
 
 
+# ---- Public API directory (discovery) ------------------------------------
+
+@app.get("/api/directory")
+def directory(
+    category: Optional[str] = Query(default=None, max_length=80),
+    search: Optional[str] = Query(default=None, max_length=100),
+    auth: Optional[str] = None,
+    https_only: bool = False,
+    limit: int = Query(default=60, ge=1, le=120),
+    offset: int = Query(default=0, ge=0, le=5000),
+    db: Session = Depends(get_db),
+):
+    return list_directory(db, category, search, auth, https_only, limit, offset)
+
+
+@app.get("/api/directory/categories")
+def directory_cats(db: Session = Depends(get_db)):
+    return {"total": directory_count(db), "categories": directory_categories(db)}
+
+
 @app.get("/api/endpoints")
 def list_endpoints(workspace: str = "demo", db: Session = Depends(get_db)):
     endpoints = get_all_endpoints(db, workspace)
     return [endpoint_to_dict(ep, db) for ep in endpoints]
 
 
-@app.post("/api/endpoints", status_code=201)
-def add_endpoint(body: EndpointCreate, workspace: str = "demo", db: Session = Depends(get_db)):
+@app.post("/api/endpoints", status_code=201, dependencies=[Depends(endpoint_limiter)])
+def add_endpoint(
+    body: EndpointCreate,
+    workspace: str = Query(default="demo", min_length=1, max_length=64),
+    db: Session = Depends(get_db),
+):
+    if workspace == "demo":
+        raise HTTPException(403, "The demo workspace is read-only — create your own workspace")
+    if len(get_all_endpoints(db, workspace)) >= MAX_ENDPOINTS_PER_WORKSPACE:
+        raise HTTPException(429, f"Workspace limit reached ({MAX_ENDPOINTS_PER_WORKSPACE} endpoints)")
     validate_public_url(body.url)
     ep = create_endpoint(db, body.url, body.name, body.check_interval, body.alert_threshold, body.webhook_url, workspace_id=workspace)
     schedule_endpoint(ep.id, ep.url, ep.name, ep.check_interval, ep.alert_threshold, ep.webhook_url, ep.workspace_id)
@@ -250,22 +310,27 @@ def endpoint_predictions(endpoint_id: str, steps: int = 30, db: Session = Depend
 
 
 class IngestPayload(BaseModel):
-    name: str
-    endpoint_id: Optional[str] = None
-    workspace: str = "demo"
-    timestamp: Optional[str] = None
-    latency_ms: float
+    name: str = Field(min_length=1, max_length=120)
+    endpoint_id: Optional[str] = Field(default=None, max_length=64)
+    workspace: str = Field(default="demo", min_length=1, max_length=64)
+    timestamp: Optional[str] = Field(default=None, max_length=64)
+    latency_ms: float = Field(ge=0, le=3_600_000)
     success: bool = True
-    status_code: int = 200
-    threshold_ms: Optional[int] = None
-    source: str = "sdk"
+    status_code: int = Field(default=200, ge=0, le=599)
+    threshold_ms: Optional[int] = Field(default=None, ge=1, le=120000)
+    source: str = Field(default="sdk", max_length=32)
 
 
-@app.post("/api/ingest", status_code=202)
+@app.post("/api/ingest", status_code=202, dependencies=[Depends(ingest_limiter)])
 async def ingest(payload: IngestPayload, db: Session = Depends(get_db), _: None = Depends(require_ingest_key)):
+    if payload.workspace == "demo":
+        raise HTTPException(403, "The demo workspace is read-only")
     ep = None
     if payload.endpoint_id:
         ep = get_endpoint(db, payload.endpoint_id)
+        # An explicit endpoint_id must belong to the claimed workspace.
+        if ep and ep.workspace_id != payload.workspace:
+            ep = None
     if not ep:
         endpoints = get_all_endpoints(db, payload.workspace)
         for e in endpoints:
@@ -273,6 +338,8 @@ async def ingest(payload: IngestPayload, db: Session = Depends(get_db), _: None 
                 ep = e
                 break
     if not ep:
+        if len(get_all_endpoints(db, payload.workspace)) >= MAX_ENDPOINTS_PER_WORKSPACE:
+            raise HTTPException(429, f"Workspace limit reached ({MAX_ENDPOINTS_PER_WORKSPACE} endpoints)")
         ep = create_endpoint(
             db,
             url=f"sdk://{payload.name}",

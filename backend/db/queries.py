@@ -1,8 +1,58 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
-from db.models import Endpoint, Reading, Incident, AnomalyEvent, EndpointModel
+from sqlalchemy import func, and_, or_
+from db.models import Endpoint, Reading, Incident, AnomalyEvent, EndpointModel, DirectoryApi
+
+
+# ---- Public API directory ------------------------------------------------
+
+def _directory_row(api: DirectoryApi) -> dict:
+    return {
+        "id": api.id,
+        "name": api.name,
+        "url": api.url,
+        "description": api.description,
+        "auth": api.auth,
+        "https": api.https,
+        "cors": api.cors,
+        "category": api.category,
+    }
+
+
+def list_directory(db: Session, category: Optional[str] = None, search: Optional[str] = None,
+                   auth: Optional[str] = None, https_only: bool = False,
+                   limit: int = 60, offset: int = 0) -> dict:
+    q = db.query(DirectoryApi)
+    if category:
+        q = q.filter(DirectoryApi.category == category)
+    if search:
+        like = f"%{search.strip()}%"
+        q = q.filter(or_(DirectoryApi.name.ilike(like), DirectoryApi.description.ilike(like)))
+    if auth == "none":
+        q = q.filter(DirectoryApi.auth == "None")
+    elif auth == "key":
+        q = q.filter(DirectoryApi.auth != "None")
+    if https_only:
+        q = q.filter(DirectoryApi.https == True)
+
+    total = q.count()
+    rows = q.order_by(DirectoryApi.name).offset(offset).limit(limit).all()
+    return {"total": total, "results": [_directory_row(r) for r in rows]}
+
+
+def directory_categories(db: Session) -> list[dict]:
+    rows = (
+        db.query(DirectoryApi.category, func.count(DirectoryApi.id))
+        .group_by(DirectoryApi.category)
+        .order_by(DirectoryApi.category)
+        .all()
+    )
+    return [{"category": c, "count": n} for c, n in rows]
+
+
+def directory_count(db: Session) -> int:
+    return db.query(func.count(DirectoryApi.id)).scalar() or 0
 
 
 RANGE_MAP = {

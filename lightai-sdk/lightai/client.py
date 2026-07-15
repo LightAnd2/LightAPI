@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 _config = {
     "url": os.getenv("LIGHTAI_URL", "http://localhost:8000"),
     "api_key": os.getenv("LIGHTAI_API_KEY", ""),
-    "workspace": os.getenv("LIGHTAI_WORKSPACE", "demo"),
+    "workspace": os.getenv("LIGHTAI_WORKSPACE", "sandbox"),
 }
 
 

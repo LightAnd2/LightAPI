@@ -28,29 +28,22 @@ def test_validate_public_url_rejects_unsafe(url):
 
 def test_ingest_requires_key_when_configured(client, monkeypatch):
     monkeypatch.setattr(security, "INGEST_API_KEY", "secret-key")
+    payload = {"name": "svc", "latency_ms": 10.0, "workspace": "ws-key"}
 
     # No key -> rejected.
-    resp = client.post("/api/ingest", json={"name": "svc", "latency_ms": 10.0})
+    resp = client.post("/api/ingest", json=payload)
     assert resp.status_code == 401
 
     # Wrong key -> rejected.
-    resp = client.post(
-        "/api/ingest",
-        json={"name": "svc", "latency_ms": 10.0},
-        headers={"X-API-Key": "nope"},
-    )
+    resp = client.post("/api/ingest", json=payload, headers={"X-API-Key": "nope"})
     assert resp.status_code == 401
 
     # Correct key -> accepted.
-    resp = client.post(
-        "/api/ingest",
-        json={"name": "svc", "latency_ms": 10.0},
-        headers={"X-API-Key": "secret-key"},
-    )
+    resp = client.post("/api/ingest", json=payload, headers={"X-API-Key": "secret-key"})
     assert resp.status_code == 202
 
 
 def test_ingest_open_when_key_unset(client, monkeypatch):
     monkeypatch.setattr(security, "INGEST_API_KEY", "")
-    resp = client.post("/api/ingest", json={"name": "svc", "latency_ms": 10.0})
+    resp = client.post("/api/ingest", json={"name": "svc", "latency_ms": 10.0, "workspace": "ws-open"})
     assert resp.status_code == 202

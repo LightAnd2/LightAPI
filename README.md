@@ -1,290 +1,142 @@
-# LightAI
+<div align="center">
+
+# LightAPI
+
+**Discover every free API on the internet — then monitor any of them, live, in one click.**
 
 [![Backend Tests](https://github.com/LightAnd2/LightAI/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/LightAnd2/LightAI/actions/workflows/backend-tests.yml)
+&nbsp;·&nbsp;
+`React` `FastAPI` `PyTorch` `WebSocket` `SQLite`
 
-> LightAI pings your endpoints, then trains a small LSTM on each one's history to flag anomalies and predict slowdowns before they turn into outages.
+</div>
 
-**Frontend:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) · **Backend:** run locally or self-host (see [Deployment](#deployment)) to populate live data
+![Discover free APIs by category](screenshots/01-discover.png)
 
-**Stack:** `React` `FastAPI` `SQLite` `PyTorch` `APScheduler` `WebSocket`
+Most API directories are static lists. LightAPI's are **monitorable**: search 1,500+ free public APIs by category, find one you like, click **Monitor**, and it drops into a real-time dashboard tracking its uptime and latency — with a per-endpoint LSTM that learns each service's normal and flags anomalies before they become outages.
 
-![Landing](screenshots/landing.png)
+> **Frontend:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) — the directory is deployed; run or self-host the backend (see [Deployment](#deployment)) to power live monitoring.
+
+---
+
+## Highlights
+
+**Discovery**
+- Full-text search across **1,573 free APIs** in **50 categories**, sourced from the community [public-apis](https://github.com/public-apis/public-apis) project
+- Filter by category, auth requirement, and HTTPS; refreshed automatically every day
+- Fast, keyboard-first UI (`/` to search)
+
+**Monitoring** — one click from any API
+- Pings each endpoint on an interval; records latency, status, and uptime
+- Live dashboard updates over **WebSocket** within 100 ms of each reading
+- **Per-endpoint LSTM** trained on that service's own history; z-score fallback until it has enough data
+- Predictive alerts, incident logs, root-cause correlation, and deploy-regression tracking
+
+**Platform**
+- **Multi-tenant** — every visitor gets an isolated workspace via an unguessable shareable link, no login
+- Hardened: SSRF protection, per-IP rate limiting, resource caps, locked CORS, security headers
+- Python **SDK** (`@monitor` decorator) for function-level tracing
+- Fully tested (50 tests) with CI, and containerized for any host
+
+---
+
+## Discovery
+
+<p align="center"><img src="screenshots/02-search.png" alt="Search and filter the API directory" width="100%"></p>
+
+Search is instant and debounced. The category rail shows live counts, and the `no key` filter narrows to APIs that need no authentication — the ones you can try immediately.
+
+## Monitoring
+
+<p align="center"><img src="screenshots/03-monitor.png" alt="Live monitoring dashboard with latency chart and anomaly detection" width="100%"></p>
+
+Clicking **Monitor** on any API adds it to your workspace and opens this dashboard: live latency chart, uptime over 7/30 days, an alert threshold, incident log, and anomaly events. After 100 readings, a dedicated LSTM takes over from the z-score baseline (shown as *LSTM active*).
+
+---
+
+## How It Works
+
+**Discovery** — A daily [APScheduler](https://apscheduler.readthedocs.io/) job fetches the latest public-apis dataset, parses it, and caches it in SQLite. A bundled snapshot seeds the directory instantly on first boot, so the app works with no network.
+
+**Workspaces** — Every visitor gets a workspace on first visit, no signup. Its id lives in the browser and in a shareable link (`/dashboard?ws=<id>`); all endpoints, readings, and incidents are scoped to it. The id is 96 bits of cryptographic randomness — a capability URL, so treat it like a password.
+
+**Monitoring loop** — An async job per endpoint records latency, status, and success into SQLite, indexed on `(endpoint_id, timestamp)` for fast range queries.
+
+**Anomaly detection** — Two modes by data volume:
+
+| Mode | Condition | Method |
+|---|---|---|
+| Z-score | < 100 readings | Flags readings > 2.5σ from the rolling mean |
+| LSTM | 100+ readings | A 2-layer LSTM predicts the next value; flags actual > predicted × 1.5 |
+
+The LSTM understands sequences — a spike at 3 a.m. is more anomalous than the same spike at noon, because the model has learned the endpoint's time-of-day pattern.
+
+**Real-time fanout** — New readings broadcast over WebSocket only to clients subscribed to that endpoint's workspace, so live data never crosses workspace boundaries.
 
 ---
 
 ## Quick Start
 
-### 1. Backend
-
+**Backend**
 ```bash
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
+On first run the API directory seeds from the bundled snapshot and three demo endpoints begin monitoring.
 
-> On first run, three demo endpoints are seeded automatically so the dashboard is not empty.
-
-### 2. Frontend
-
+**Frontend**
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev        # http://localhost:3000
 ```
 
-Open `http://localhost:3000`
-
-### 3. Load Simulator (optional)
-
-Spins up 10 synthetic services with realistic latency profiles. Useful for testing anomaly detection and populating the dashboard fast.
-
-```bash
-cd backend
-uvicorn simulator.server:app --port 8001
+**SDK** — instrument any Python function:
+```python
+pip install lightai
 ```
+```python
+from lightai import monitor
 
-The simulator auto-registers all 10 services with LightAI on startup.
+@monitor(name="get_users", threshold_ms=200)
+def get_users(org_id): ...
+```
 
 ---
 
-## Tests
+## Security
 
-The backend API is covered by a pytest suite that runs against an isolated
-in-memory database with the background scheduler stubbed out — no network calls,
-no torch required. The suite runs automatically on every push via GitHub Actions.
+LightAPI is a public, no-login app, so it is hardened against abuse and cross-tenant leakage:
+
+- **SSRF** — monitored URLs are validated; private, loopback, and link-local addresses (including the cloud-metadata IP) and non-HTTP(S) schemes are rejected
+- **Workspace isolation** — endpoints, readings, drift, RCA, the WebSocket feed, and GitHub webhooks are all scoped by workspace; verified by tests
+- **Capability URLs** — workspace ids are 96-bit unguessable; the public `demo` workspace is read-only so it can't be vandalized
+- **Rate limiting** (per IP) and **resource caps** (max endpoints per workspace) prevent the monitor from being turned into a traffic amplifier
+- **Input bounds** on every field, **locked CORS**, and security headers (`nosniff`, `X-Frame-Options`, `Referrer-Policy`)
+
+Set `LIGHTAI_API_KEY` in production to require an `X-API-Key` header on the SDK ingest endpoint.
+
+---
+
+## Tests & CI
 
 ```bash
 cd backend
 pip install -r requirements-dev.txt
 pytest
 ```
-
----
-
-## Adding an Endpoint
-
-1. Open the dashboard and click **Add Endpoint**
-2. Enter any URL — your own API, a third-party service, or `localhost`
-3. Set a check interval (default 30s) and alert threshold (default 500ms)
-4. Optionally add a webhook URL for Slack, Discord, or PagerDuty alerts
-5. Click **Start Monitoring**
-
-LightAI starts pinging immediately. After 100 readings (~50 minutes at 30s intervals), the LSTM trains automatically. Until then, z-score anomaly detection runs as a fallback.
-
-![Dashboard](screenshots/realDeployedExample.png)
-
----
-
-## SDK — Function-Level Tracing
-
-Instrument any Python function and report execution time directly to LightAI without modifying your logic.
-
-**Install**
-
-```bash
-pip install lightai
-```
-
-**Usage**
-
-```python
-from lightai import monitor
-
-@monitor(name="get_users", threshold_ms=200)
-def get_users(org_id: str):
-    return db.query(User).filter_by(org_id=org_id).all()
-
-# Works with async functions too
-@monitor(name="fetch_prices")
-async def fetch_prices(card_id: str):
-    return await client.get(f"/prices/{card_id}")
-```
-
-**Configure the backend URL** (defaults to `localhost:8000`)
-
-```python
-from lightai import configure
-configure(url="https://your-backend.example.com", workspace="your-workspace-id")
-```
-
-Or via environment variables:
-
-```bash
-export LIGHTAI_URL=https://your-backend.example.com
-export LIGHTAI_WORKSPACE=your-workspace-id   # shown in the dashboard header
-```
-
-The decorator is fire-and-forget. It never blocks or crashes the wrapped function — if LightAI is unreachable, it silently skips the report.
-
----
-
-## GitHub Deploy Tracking
-
-LightAI watches your endpoints after every push and flags latency regressions tied to specific commits.
-
-**Setup**
-
-1. Go to your repo → **Settings** → **Webhooks** → **Add webhook**
-2. Set Payload URL to `https://your-backend.example.com/api/webhooks/github?workspace=<your-workspace-id>` — the workspace id (shown in the dashboard header) binds deploys to your workspace and acts as the key, so events never attach to anyone else's endpoints
-3. Content type: `application/json`
-4. Trigger: **Just the push event**
-5. Save
-
-After each push, LightAI will:
-
-- Snapshot the pre-deploy latency baseline
-- Monitor the endpoint for 10 minutes post-deploy
-- Compare pre vs. post baselines
-- Surface a regression badge in the Deploy Tracking panel if latency increased by 20% or more, linked to the commit SHA
-
-![Demo](screenshots/Example%20Demo.jpg)
-
----
-
-## Alerts
-
-Add a webhook URL when creating an endpoint to receive `POST` requests when:
-
-- An endpoint goes down
-- An anomaly is detected (includes confidence score)
-- Predicted degradation is forecasted by the LSTM
-
-Compatible with Slack incoming webhooks, Discord, PagerDuty, or any custom endpoint.
-
-**Example payload**
-
-```json
-{
-  "type": "anomaly_detected",
-  "endpoint": "payments-api",
-  "url": "https://api.example.com/payments",
-  "actual_latency_ms": 843.2,
-  "predicted_latency_ms": 201.4,
-  "confidence": 0.87,
-  "message": "Anomaly detected on payments-api: 843ms latency (confidence 87%)"
-}
-```
-
----
-
-## Deployment
-
-### Backend — Docker (any host)
-
-The backend ships with a `Dockerfile`, so it runs the same way on Fly, Render,
-a VPS, or locally:
-
-```bash
-cd backend
-docker build -t lightai .
-docker run -p 8000:8000 -v lightai-data:/data \
-  -e DATABASE_URL=sqlite:////data/lightai.db \
-  lightai
-```
-
-The `-v lightai-data:/data` volume keeps the SQLite database and trained model
-weights across restarts.
-
-The backend is a standard container, so it runs on any host that takes a
-Dockerfile — Fly.io, Render, a VPS, or Railway (a `railway.toml` is included for
-that path). Build the image as above, set the environment variables below, and
-expose the port. Use a persistent volume for `/data` so the SQLite database and
-trained model weights survive restarts.
-
-### Configuration
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `PORT` | Port the server binds to | `8000` |
-| `DATABASE_URL` | SQLite location (use a mounted volume in containers) | `sqlite:///./lightai.db` |
-| `ALLOWED_ORIGINS` | Comma-separated CORS allowlist (your frontend URLs) | deployed site + localhost |
-| `LIGHTAI_API_KEY` | If set, `/api/ingest` requires a matching `X-API-Key` header | _(unset → ingest open)_ |
-| `GITHUB_WEBHOOK_SECRET` | If set, GitHub webhook signatures are verified | _(unset → skipped)_ |
-
-**Security notes:** URLs added for monitoring are validated against SSRF
-(http/https only; private, loopback, and link-local addresses — including the
-cloud metadata IP — are rejected). CORS is restricted to the configured origins.
-
-### Frontend — Vercel
-
-1. Install the Vercel CLI: `npm i -g vercel`
-2. Run `vercel --cwd frontend --prod` and follow the prompts
-3. Add environment variables via CLI:
-
-```bash
-vercel env add VITE_API_URL production
-vercel env add VITE_WS_URL production
-```
-
-| Variable | Value |
-|---|---|
-| `VITE_API_URL` | Your backend URL (e.g. `https://your-backend.example.com`) |
-| `VITE_WS_URL` | Same URL with `wss://` scheme (e.g. `wss://your-backend.example.com`) |
-
-4. Redeploy: `vercel --cwd frontend --prod`
-
----
-
-## How It Works
-
-**Workspaces**
-Every visitor gets their own workspace on first visit — no signup. The id lives in the browser and in a shareable link (`/dashboard?ws=<id>`), and all endpoints, readings, and incidents are scoped to it. Opening someone else's link (like the demo) views their workspace without touching yours.
-
-Workspace links are **capability URLs**: the id is 96 bits of cryptographic randomness (unguessable), but anyone you give the link to can view *and edit* that workspace — treat it like a password. The public `demo` workspace is delete-protected so it can't be vandalized. Real accounts are the natural upgrade path if you need per-person permissions.
-
-**Monitoring loop**
-APScheduler runs an async job per endpoint on the configured interval. Each ping records latency, status code, and success into SQLite, indexed on `(endpoint_id, timestamp)` for fast range queries.
-
-**Anomaly detection**
-Two modes depending on data volume:
-
-| Mode | Condition | Method |
-|---|---|---|
-| Z-score | < 100 readings | Flags readings more than 2.5 standard deviations from the rolling mean |
-| LSTM | 100+ readings | 2-layer LSTM predicts next latency value. Flags anomaly if actual > predicted × 1.5 |
-
-Z-score only compares the current value against a static mean. The LSTM understands sequences — a spike at 3am is more anomalous than the same spike at noon because the model has learned the endpoint's time-of-day patterns.
-
-**Root cause analysis**
-When an endpoint goes down, LightAI cross-references all other monitored endpoints within a ±120 second window and classifies the failure as one of: `isolated`, `upstream_dependency`, `shared_infrastructure`, or `cascading_failure` — each with a confidence score.
-
-**Baseline drift**
-Compares the 24h average latency against the 30d average. If a service has silently gotten 30%+ slower without triggering any alerts, it surfaces as a drift warning in the dashboard.
-
-**WebSocket fanout**
-Each endpoint has its own subscription list. New readings are broadcast only to clients viewing that endpoint. A global channel handles sidebar updates across all endpoints simultaneously.
-
----
-
-## Project Structure
-
-```
-lightai/
-├── frontend/              React + Vite + Tailwind
-├── backend/
-│   ├── app/               FastAPI routes, monitor loop, WebSocket, RCA, drift, alerts, security
-│   ├── ml/                LSTM model, trainer, predictor, daily retraining
-│   ├── db/                SQLAlchemy models and query helpers
-│   ├── simulator/         Synthetic load generator (10 procedural services)
-│   ├── tests/             pytest API suite (run in CI)
-│   └── Dockerfile         Container image for any host
-├── lightai-sdk/           pip-installable @monitor decorator
-├── .github/workflows/     GitHub Actions CI (backend tests)
-├── vercel.json
-└── railway.toml
-```
+50 tests cover the directory, workspace isolation, security, and abuse hardening, running against an isolated in-memory database with no network calls. They run automatically on every push via GitHub Actions.
 
 ---
 
 ## API Reference
 
-All endpoint data is namespaced by **workspace** — every visitor gets their own
-space (a generated id kept in the browser and shareable via `/dashboard?ws=<id>`),
-so one deployment serves any number of users and projects without accounts.
-Scoped routes take `?workspace=<id>` and default to the `demo` workspace.
+Directory routes are public; endpoint routes are scoped by `?workspace=<id>` (default `demo`).
 
 | Method | Path | Description |
 |---|---|---|
+| `GET` | `/api/directory` | Search the directory (`?search=`, `?category=`, `?auth=none\|key`, `?https_only=`) |
+| `GET` | `/api/directory/categories` | Categories with counts + total |
 | `POST` | `/api/workspaces` | Mint a new workspace id |
 | `GET` | `/api/endpoints` | List endpoints (`?workspace=`) |
 | `POST` | `/api/endpoints` | Add an endpoint (`?workspace=`, URL validated against SSRF) |
@@ -293,20 +145,62 @@ Scoped routes take `?workspace=<id>` and default to the `demo` workspace.
 | `GET` | `/api/endpoints/:id/readings` | Latency readings (`?range=1h\|24h\|7d\|30d\|90d`) |
 | `GET` | `/api/endpoints/:id/incidents` | Incident log |
 | `GET` | `/api/endpoints/:id/anomalies` | Anomaly events |
-| `GET` | `/api/endpoints/:id/stats` | Uptime, latency stats, model status |
-| `GET` | `/api/endpoints/:id/drift` | Baseline drift analysis |
-| `GET` | `/api/endpoints/:id/rca/:incidentId` | Root cause analysis for an incident |
-| `GET` | `/api/endpoints/:id/deploys` | Deploy history |
-| `GET` | `/api/endpoints/:id/predictions` | LSTM forecast (next N values) |
-| `GET` | `/api/stats` | Workspace stats (`?workspace=`; totals, uptime, active incidents) |
-| `GET` | `/api/drift` | Drift summary across all endpoints |
-| `POST` | `/api/ingest` | SDK readings ingest (optional `X-API-Key`; `workspace` in payload) |
-| `POST` | `/api/webhooks/github` | GitHub push event receiver (`?workspace=`) |
-| `WS` | `/ws/:id` | Per-endpoint real-time feed |
+| `GET` | `/api/endpoints/:id/stats` | Uptime, latency, model status |
+| `GET` | `/api/endpoints/:id/predictions` | LSTM forecast |
+| `GET` | `/api/stats` | Workspace stats (`?workspace=`) |
+| `POST` | `/api/ingest` | SDK readings ingest (optional `X-API-Key`) |
+| `POST` | `/api/webhooks/github` | GitHub deploy webhook (`?workspace=`) |
 | `WS` | `/ws` | Workspace live feed (`?workspace=`) |
 
 ---
 
-## Credits
+## Deployment
 
-Built by [Andrew Koja](https://www.linkedin.com/in/andrewkoja) — [GitHub](https://github.com/LightAnd2)
+The backend is a standard container, so it runs on any host that takes a Dockerfile — Render, Fly.io, Koyeb, or a VPS.
+
+```bash
+cd backend
+docker build -t lightapi .
+docker run -p 8000:8000 -v lightapi-data:/data \
+  -e DATABASE_URL=sqlite:////data/lightapi.db \
+  -e ALLOWED_ORIGINS=https://your-frontend.example.com \
+  lightapi
+```
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` | Server port | `8000` |
+| `DATABASE_URL` | SQLite location (use a mounted volume) | `sqlite:///./lightai.db` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS allowlist | deployed site + localhost |
+| `LIGHTAI_API_KEY` | If set, `/api/ingest` requires `X-API-Key` | _(unset → open)_ |
+| `GITHUB_WEBHOOK_SECRET` | If set, webhook signatures are verified | _(unset → skipped)_ |
+
+The frontend deploys to any static host (Vercel/Netlify); set `VITE_API_URL` and `VITE_WS_URL` to the backend's URL.
+
+---
+
+## Tech Stack
+
+`React` · `Vite` · `Tailwind` · `Recharts` — frontend
+`FastAPI` · `SQLAlchemy` · `SQLite` · `APScheduler` · `WebSocket` — backend
+`PyTorch` (LSTM) · `scikit-learn` · `NumPy` — ML
+
+## Project Structure
+
+```
+lightapi/
+├── frontend/              React + Vite + Tailwind (Explore + Dashboard)
+├── backend/
+│   ├── app/               FastAPI routes, directory, monitor loop, WebSocket, RCA, drift, security
+│   ├── ml/                LSTM model, trainer, predictor
+│   ├── db/                SQLAlchemy models + query helpers
+│   ├── data/              Bundled API directory snapshot
+│   ├── tests/             pytest suite (run in CI)
+│   └── Dockerfile
+├── lightai-sdk/           pip-installable @monitor decorator
+└── .github/workflows/     GitHub Actions CI
+```
+
+---
+
+Built by [Andrew Koja](https://www.linkedin.com/in/andrewkoja) · [GitHub](https://github.com/LightAnd2)

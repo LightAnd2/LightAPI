@@ -21,7 +21,7 @@ export default function Privacy() {
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
             <Logo size={22} />
-            <span className="text-base font-bold text-gray-900 tracking-tight">LightAI</span>
+            <span className="text-base font-bold text-gray-900 tracking-tight">LightAPI</span>
           </Link>
           <Link to="/dashboard" className="btn-primary text-xs px-3 py-1.5">
             Dashboard
@@ -37,7 +37,7 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-sm font-semibold text-gray-900 mb-2">Overview</h2>
-            <p>LightAI is an open-source uptime and latency monitoring tool. This policy explains what data is collected when you use LightAI, how it is stored, and how it is used. LightAI does not sell, share, or monetize any data.</p>
+            <p>LightAPI is an open-source public API directory and monitoring tool. This policy explains what data is collected when you use LightAPI, how it is stored, and how it is used. LightAPI does not sell, share, or monetize any data.</p>
           </section>
 
           <section>
@@ -63,17 +63,17 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-sm font-semibold text-gray-900 mb-2">Third-party requests</h2>
-            <p>LightAI makes outbound HTTP requests to the URLs you add in order to measure their latency and availability. These requests originate from the backend server and include a standard HTTP User-Agent header. No personal data is included in these requests.</p>
+            <p>LightAPI makes outbound HTTP requests to the URLs you add in order to measure their latency and availability. These requests originate from the backend server and include a standard HTTP User-Agent header. No personal data is included in these requests.</p>
           </section>
 
           <section>
             <h2 className="text-sm font-semibold text-gray-900 mb-2">Webhooks</h2>
-            <p>If you configure a webhook URL for alerts, LightAI will send POST requests to that URL containing endpoint name, latency values, and alert type. You are responsible for the security of any webhook endpoint you provide.</p>
+            <p>If you configure a webhook URL for alerts, LightAPI will send POST requests to that URL containing endpoint name, latency values, and alert type. You are responsible for the security of any webhook endpoint you provide.</p>
           </section>
 
           <section>
             <h2 className="text-sm font-semibold text-gray-900 mb-2">Open source</h2>
-            <p>LightAI is fully open source. You can inspect the complete codebase, including all data handling logic, at <a href="https://github.com/LightAnd2/LightAI" target="_blank" rel="noreferrer" className="text-msu-green hover:underline">github.com/LightAnd2/LightAI</a>. You are free to self-host the backend for full control over your data.</p>
+            <p>LightAPI is fully open source. You can inspect the complete codebase, including all data handling logic, at <a href="https://github.com/LightAnd2/LightAI" target="_blank" rel="noreferrer" className="text-msu-green hover:underline">github.com/LightAnd2/LightAI</a>. You are free to self-host the backend for full control over your data.</p>
           </section>
 
         </div>
@@ -84,7 +84,7 @@ export default function Privacy() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Logo size={14} />
-              <span className="text-xs font-bold text-gray-700">LightAI</span>
+              <span className="text-xs font-bold text-gray-700">LightAPI</span>
             </div>
             <p className="text-xs text-gray-400">&copy; {new Date().getFullYear()} Andrew Koja. All rights reserved.</p>
           </div>

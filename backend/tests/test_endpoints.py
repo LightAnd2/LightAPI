@@ -10,7 +10,7 @@ def test_list_endpoints_empty(client):
 
 def test_create_endpoint(client):
     resp = client.post(
-        "/api/endpoints",
+        f"/api/endpoints?workspace={SAMPLE_WS}",
         json={
             "url": "https://api.example.com",
             "name": "example",
@@ -30,7 +30,7 @@ def test_create_endpoint(client):
 
 def test_create_endpoint_uses_defaults(client):
     resp = client.post(
-        "/api/endpoints",
+        f"/api/endpoints?workspace={SAMPLE_WS}",
         json={"url": "https://api.example.com", "name": "defaults"},
     )
     assert resp.status_code == 201
@@ -102,7 +102,7 @@ def test_ingest_creates_endpoint_and_reading(client):
     """
     resp = client.post(
         "/api/ingest",
-        json={"name": "checkout", "latency_ms": 42.5, "status_code": 200},
+        json={"name": "checkout", "latency_ms": 42.5, "status_code": 200, "workspace": SAMPLE_WS},
     )
     assert resp.status_code == 202
     body = resp.json()

@@ -22,15 +22,29 @@ def test_create_workspace_mints_id(client):
     assert client.post("/api/workspaces").json()["id"] != ws_id
 
 
+def _seed_demo_endpoint(client, name="demo-ep"):
+    from db.queries import create_endpoint
+    db = client.session_factory()
+    try:
+        ep = create_endpoint(db, "https://d.example.com", name, 30, 500, None, workspace_id="demo")
+        return ep.id
+    finally:
+        db.close()
+
+
 def test_demo_endpoints_cannot_be_deleted(client):
     # demo is the only publicly-known workspace; its endpoints are protected.
-    resp = client.post("/api/endpoints", json={"url": "https://d.example.com", "name": "demo-ep"})
-    assert resp.status_code == 201
-    ep_id = resp.json()["id"]
-
+    ep_id = _seed_demo_endpoint(client)
     assert client.delete(f"/api/endpoints/{ep_id}").status_code == 403
     # Still there.
     assert [e["id"] for e in client.get("/api/endpoints").json()] == [ep_id]
+
+
+def test_demo_workspace_is_read_only(client):
+    # Writes to the public demo workspace are rejected; visitors use their own.
+    assert client.post("/api/endpoints", json={"url": "https://d.example.com", "name": "x"}).status_code == 403
+    assert client.post("/api/endpoints?workspace=demo", json={"url": "https://d.example.com", "name": "x"}).status_code == 403
+    assert client.post("/api/ingest", json={"name": "x", "latency_ms": 1.0, "workspace": "demo"}).status_code == 403
 
 
 def test_endpoints_are_isolated_per_workspace(client):
@@ -44,13 +58,11 @@ def test_endpoints_are_isolated_per_workspace(client):
     assert beta == ["beta-api"]
 
 
-def test_default_workspace_is_demo(client):
-    # No workspace param -> demo namespace.
-    resp = client.post("/api/endpoints", json={"url": "https://d.example.com", "name": "demo-ep"})
-    assert resp.status_code == 201
-
+def test_reads_default_to_demo_workspace(client):
+    # No workspace param on a read -> demo namespace (isolated from others).
+    _seed_demo_endpoint(client, "seeded-demo")
     names = [e["name"] for e in client.get("/api/endpoints").json()]
-    assert names == ["demo-ep"]
+    assert names == ["seeded-demo"]
     assert client.get("/api/endpoints?workspace=other").json() == []
 
 
