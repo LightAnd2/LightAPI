@@ -6,7 +6,8 @@ reproduce or move it.
 
 ## Current state (July 2026)
 
-- **Frontend:** Vercel (`lightai-kohl.vercel.app`), auto-deploys on push to `main`.
+- **Frontend:** Vercel, served at **lightapi.dev** (`lightai-kohl.vercel.app` also
+  works), auto-deploys on push to `main`.
   `VITE_API_URL` / `VITE_WS_URL` point at the Render backend.
 - **Backend:** Render free tier (`lightapi-ufl5.onrender.com`), deployed from the
   [`render.yaml`](../render.yaml) blueprint at the repo root. Auto-deploys on push
@@ -64,7 +65,7 @@ machine (~$4/mo, needed for PyTorch; 256 MB will OOM) with a volume:
 cd backend
 fly launch --no-deploy        # detects the Dockerfile
 fly volumes create lightapi_data --size 1
-fly secrets set ALLOWED_ORIGINS=https://lightai-kohl.vercel.app \
+fly secrets set ALLOWED_ORIGINS=https://lightapi.dev \
                 DATABASE_URL=sqlite:////data/lightapi.db
 # mount the volume at /data in fly.toml, then:
 fly deploy
