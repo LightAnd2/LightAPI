@@ -30,12 +30,17 @@ export default function Privacy() {
       </Section>
 
       <Section title="How data is used">
-        <p>Collected data is used solely to power the monitoring dashboard — displaying latency charts, anomaly detection, incident logs, and deploy tracking. No data is used for advertising, analytics, or any purpose outside of the monitoring functionality you configured.</p>
+        <p>Collected data is used solely to power the monitoring dashboard — displaying latency charts, anomaly detection, incident logs, and deploy tracking. No data is used for advertising, sold, or shared with anyone.</p>
       </Section>
 
       <Section title="Data storage">
-        <p>All monitoring data is stored in a SQLite database on the backend server (hosted on Render). Trained LSTM model weights are stored on the same server. No data is sent to third-party analytics or data platforms.</p>
+        <p>All monitoring data is stored in a SQLite database on the backend server (hosted on Render). Trained LSTM model weights are stored on the same server. Monitoring data never leaves that server.</p>
         <p>The backend runs on a free hosting tier without a persistent disk, so monitoring data may be cleared when the service restarts or redeploys. Don&rsquo;t rely on it as your only record of an endpoint&rsquo;s history.</p>
+      </Section>
+
+      <Section title="Analytics &amp; fonts">
+        <p>The site uses Vercel Web Analytics to count page views. It is cookie-free and anonymous: no personal profiles, no cross-site tracking, and visitor identifiers are discarded — we only see aggregate numbers like page views and country.</p>
+        <p>Fonts are served from the site itself, so visiting LightAPI does not trigger requests to third-party font CDNs.</p>
       </Section>
 
       <Section title="Third-party requests">
