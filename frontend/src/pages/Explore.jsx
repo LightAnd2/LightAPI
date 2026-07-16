@@ -242,7 +242,7 @@ export default function Explore() {
       {/* Footer */}
       <footer className="border-t border-border mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between font-mono text-[11px] text-gray-400">
-          <span>© {new Date().getFullYear()} Andrew Koja</span>
+          <span>© {new Date().getFullYear()} LightAPI</span>
           <span className="hidden sm:inline">data · public-apis</span>
           <span className="flex items-center gap-3">
             <Link to="/about" className="hover:text-gray-700 transition-colors">about</Link>
