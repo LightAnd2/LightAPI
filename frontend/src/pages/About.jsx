@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import PageShell from '../components/PageShell'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 function Section({ label, title, children }) {
   return (
@@ -21,6 +22,10 @@ function Step({ n, children }) {
 }
 
 export default function About() {
+  usePageMeta(
+    'About LightAPI — how the free API directory and monitoring work',
+    'What LightAPI is and how to use it: find a free API, monitor it in one click, and let a per-endpoint LSTM flag anomalies before they become outages.'
+  )
   return (
     <PageShell crumb="about">
       <h1 className="text-2xl font-semibold tracking-tight leading-tight">

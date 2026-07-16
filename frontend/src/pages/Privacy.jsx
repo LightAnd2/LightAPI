@@ -1,4 +1,5 @@
 import PageShell from '../components/PageShell'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 function Section({ title, children }) {
   return (
@@ -10,6 +11,10 @@ function Section({ title, children }) {
 }
 
 export default function Privacy() {
+  usePageMeta(
+    'Privacy Policy — LightAPI',
+    'What data LightAPI collects, how it is stored, and how it is used. No accounts, no selling data, cookie-free analytics.'
+  )
   return (
     <PageShell crumb="privacy">
       <h1 className="text-2xl font-semibold tracking-tight">Privacy Policy</h1>

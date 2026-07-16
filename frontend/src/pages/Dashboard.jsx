@@ -9,6 +9,7 @@ import EndpointCard from '../components/EndpointCard'
 import EndpointDetail from './EndpointDetail'
 import AddEndpointModal from '../components/AddEndpointModal'
 import { api } from '../services/api'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 function GlobalStats({ stats }) {
   if (!stats) return null
@@ -83,6 +84,7 @@ function BackendOffline({ onRetry }) {
 }
 
 export default function Dashboard() {
+  usePageMeta('Dashboard — LightAPI', 'Live uptime and latency monitoring for your endpoints.')
   const { endpointId } = useParams()
   const navigate = useNavigate()
   const { endpoints, loading, error, refetch, updateEndpoint, addEndpoint, removeEndpoint } = useEndpoints()

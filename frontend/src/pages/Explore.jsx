@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
+import { usePageMeta } from '../hooks/usePageMeta'
 
 function Logo({ size = 20 }) {
   return (
@@ -66,6 +67,10 @@ function Row({ item, state, onMonitor }) {
 }
 
 export default function Explore() {
+  usePageMeta(
+    'LightAPI — Discover and monitor every free API',
+    'Search 1,500+ free public APIs by category, then monitor any of them live — uptime, latency, and ML-powered anomaly detection — in one click.'
+  )
   const navigate = useNavigate()
   const searchRef = useRef(null)
   const [categories, setCategories] = useState([])
