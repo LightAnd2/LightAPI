@@ -38,7 +38,7 @@ export default function RCAPanel({ rca }) {
   const Icon = config.icon
 
   return (
-    <div className={`rounded-lg border ${config.border} ${config.bg} p-4`}>
+    <div className={`rounded-sm border ${config.border} ${config.bg} p-4`}>
       <div className="flex items-start gap-3">
         <Icon size={16} className={`${config.color} mt-0.5 shrink-0`} />
         <div className="min-w-0">

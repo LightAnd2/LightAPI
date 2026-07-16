@@ -12,9 +12,9 @@ import { api } from '../services/api'
 function StatCard({ label, value, sub, mono = true }) {
   return (
     <div className="stat-card">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="font-mono text-xs text-gray-400 mb-1">{label}</p>
       <p className={`text-xl font-semibold text-gray-900 ${mono ? 'font-mono' : ''}`}>{value ?? '—'}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      {sub && <p className="font-mono text-[11px] text-gray-400 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -117,7 +117,7 @@ export default function EndpointDetail({ endpoint }) {
             <StatusBadge status={currentStatus} />
           </div>
           <p className="text-xs text-gray-400 mt-1 font-mono">
-            Last checked: {fmtTs(lastChecked)}
+            last checked: {fmtTs(lastChecked)}
           </p>
         </div>
         <div className="text-right shrink-0">
@@ -128,29 +128,29 @@ export default function EndpointDetail({ endpoint }) {
           }`}>
             {currentLatency != null ? `${Math.round(currentLatency)}ms` : '—'}
           </p>
-          <p className="text-xs text-gray-400">current latency</p>
+          <p className="font-mono text-xs text-gray-400">current latency</p>
         </div>
       </div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Current Latency"
+          label="current latency"
           value={currentLatency != null ? `${Math.round(currentLatency)}ms` : '—'}
         />
         <StatCard
-          label="Uptime 7d"
+          label="uptime 7d"
           value={stats ? `${stats.uptime_7d}%` : '—'}
         />
         <StatCard
-          label="Uptime 30d"
+          label="uptime 30d"
           value={stats ? `${stats.uptime_30d}%` : '—'}
         />
         <StatCard
-          label="Incidents (30d)"
+          label="incidents 30d"
           value={stats?.incidents_month ?? '—'}
           mono={false}
-          sub={stats?.model_ready ? 'LSTM active' : 'Building model…'}
+          sub={stats?.model_ready ? 'lstm active' : 'building model…'}
         />
       </div>
 
@@ -164,7 +164,7 @@ export default function EndpointDetail({ endpoint }) {
 
       {/* Latency chart */}
       <div className="card p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Latency</h2>
+        <h2 className="text-sm font-medium text-gray-900 mb-4">Latency</h2>
         <LatencyChart
           endpointId={endpoint.id}
           alertThreshold={endpoint.alert_threshold}
@@ -177,23 +177,23 @@ export default function EndpointDetail({ endpoint }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="card">
           <div className="px-5 py-3.5 border-b border-border">
-            <h2 className="text-sm font-semibold text-gray-900">Incident Log</h2>
+            <h2 className="text-sm font-medium text-gray-900">Incident Log</h2>
           </div>
           <IncidentTimeline incidents={incidents} />
         </div>
 
         <div className="card">
           <div className="px-5 py-3.5 border-b border-border">
-            <h2 className="text-sm font-semibold text-gray-900">Anomaly Events</h2>
+            <h2 className="text-sm font-medium text-gray-900">Anomaly Events</h2>
           </div>
           {anomalies.length === 0 ? (
             <div className="text-sm text-gray-400 py-6 text-center">No anomalies detected.</div>
           ) : (
             <div className="divide-y divide-border">
-              <div className="grid grid-cols-3 gap-2 px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                <span>Time</span>
-                <span className="font-mono">Actual</span>
-                <span>Confidence</span>
+              <div className="grid grid-cols-3 gap-2 px-4 py-2 font-mono text-[11px] text-gray-400">
+                <span>time</span>
+                <span>actual</span>
+                <span>confidence</span>
               </div>
               {anomalies.slice(0, 12).map((a) => (
                 <div key={a.id} className="grid grid-cols-3 gap-2 px-4 py-2.5 hover:bg-gray-50 transition-colors">
@@ -218,7 +218,7 @@ export default function EndpointDetail({ endpoint }) {
       {/* Deploy tracking */}
       <div className="card">
         <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">Deploy Tracking</h2>
+          <h2 className="text-sm font-medium text-gray-900">Deploy Tracking</h2>
           {liveDeployEvent && !liveDeployEvent.analysis_complete && (
             <span className="flex items-center gap-1.5 text-xs text-msu-green font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-msu-green animate-pulse" />

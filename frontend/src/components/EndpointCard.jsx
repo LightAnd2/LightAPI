@@ -7,7 +7,7 @@ export default function EndpointCard({ endpoint, isActive, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-3 flex items-center gap-3 transition-colors border-l-2 hover:bg-gray-50 ${
+      className={`w-full text-left px-3 py-3 flex items-center gap-3 transition-colors border-l-2 hover:bg-gray-50/80 ${
         isActive
           ? 'border-l-msu-green bg-green-50/40'
           : 'border-l-transparent'

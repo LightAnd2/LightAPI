@@ -34,19 +34,19 @@
 
 @layer components {
   .card {
-    @apply bg-white border border-border rounded-lg shadow-card;
+    @apply bg-white border border-border rounded-sm;
   }
 
   .btn-primary {
-    @apply bg-msu-green text-white font-medium px-4 py-2 rounded-md hover:bg-msu-green-light transition-colors text-sm;
+    @apply bg-msu-green text-white font-medium px-4 py-2 rounded-sm hover:bg-msu-green-light transition-colors text-sm;
   }
 
   .btn-secondary {
-    @apply bg-white text-msu-green border border-msu-green font-medium px-4 py-2 rounded-md hover:bg-base transition-colors text-sm;
+    @apply bg-white text-msu-green border border-msu-green font-medium px-4 py-2 rounded-sm hover:bg-base transition-colors text-sm;
   }
 
   .stat-card {
-    @apply bg-white border border-border rounded-lg shadow-card p-4;
+    @apply bg-white border border-border rounded-sm p-4;
   }
 
   .mono {

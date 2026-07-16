@@ -53,7 +53,7 @@ export default function AddEndpointModal({ open, onClose, onAdded }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ duration: 0.15 }}
-            className="relative bg-white rounded-xl border border-border shadow-card-hover w-full max-w-md"
+            className="relative bg-white rounded-sm border border-border shadow-card-hover w-full max-w-md"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <h2 className="text-sm font-semibold text-gray-900">Start Monitoring</h2>
@@ -71,7 +71,7 @@ export default function AddEndpointModal({ open, onClose, onAdded }) {
                   placeholder="https://api.example.com/health"
                   value={form.url}
                   onChange={(e) => set('url', e.target.value)}
-                  className="w-full border border-border rounded-md px-3 py-2 text-sm font-mono placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green"
+                  className="w-full border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green"
                 />
               </div>
 
@@ -83,7 +83,7 @@ export default function AddEndpointModal({ open, onClose, onAdded }) {
                   placeholder="My API"
                   value={form.name}
                   onChange={(e) => set('name', e.target.value)}
-                  className="w-full border border-border rounded-md px-3 py-2 text-sm placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green"
+                  className="w-full border border-border rounded-sm px-3 py-2 text-sm placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green"
                 />
               </div>
 
@@ -97,7 +97,7 @@ export default function AddEndpointModal({ open, onClose, onAdded }) {
                       max={300}
                       value={form.check_interval}
                       onChange={(e) => set('check_interval', e.target.value)}
-                      className="w-full border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green pr-8"
+                      className="w-full border border-border rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green pr-8"
                     />
                     <span className="absolute right-2.5 top-2 text-xs text-gray-400">s</span>
                   </div>
@@ -110,7 +110,7 @@ export default function AddEndpointModal({ open, onClose, onAdded }) {
                       min={50}
                       value={form.alert_threshold}
                       onChange={(e) => set('alert_threshold', e.target.value)}
-                      className="w-full border border-border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green pr-10"
+                      className="w-full border border-border rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green pr-10"
                     />
                     <span className="absolute right-2.5 top-2 text-xs text-gray-400">ms</span>
                   </div>
@@ -124,7 +124,7 @@ export default function AddEndpointModal({ open, onClose, onAdded }) {
                   placeholder="https://hooks.slack.com/..."
                   value={form.webhook_url}
                   onChange={(e) => set('webhook_url', e.target.value)}
-                  className="w-full border border-border rounded-md px-3 py-2 text-sm font-mono placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green"
+                  className="w-full border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-msu-green focus:border-msu-green"
                 />
               </div>
 

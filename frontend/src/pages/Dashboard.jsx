@@ -13,23 +13,14 @@ import { api } from '../services/api'
 function GlobalStats({ stats }) {
   if (!stats) return null
   return (
-    <div className="flex items-center gap-5">
-      <div className="text-center">
-        <span className="text-xs text-gray-400">Endpoints</span>
-        <p className="text-sm font-mono font-semibold text-gray-900">{stats.total_endpoints}</p>
-      </div>
-      <div className="w-px h-8 bg-border" />
-      <div className="text-center">
-        <span className="text-xs text-gray-400">Global Uptime</span>
-        <p className="text-sm font-mono font-semibold text-status-healthy">{stats.global_uptime}%</p>
-      </div>
-      <div className="w-px h-8 bg-border" />
-      <div className="text-center">
-        <span className="text-xs text-gray-400">Active Incidents</span>
-        <p className={`text-sm font-mono font-semibold ${stats.active_incidents > 0 ? 'text-status-down' : 'text-gray-900'}`}>
-          {stats.active_incidents}
-        </p>
-      </div>
+    <div className="hidden sm:flex items-center gap-4 font-mono text-xs text-gray-400">
+      <span><span className="text-gray-900">{stats.total_endpoints}</span> endpoints</span>
+      <span className="text-gray-200">·</span>
+      <span><span className="text-status-healthy">{stats.global_uptime}%</span> uptime</span>
+      <span className="text-gray-200">·</span>
+      <span>
+        <span className={stats.active_incidents > 0 ? 'text-status-down' : 'text-gray-900'}>{stats.active_incidents}</span> incidents
+      </span>
     </div>
   )
 }
@@ -60,10 +51,8 @@ function EmptyState({ onAdd }) {
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center max-w-sm">
-        <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mx-auto mb-4">
-          <Activity size={22} className="text-msu-green" />
-        </div>
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">No endpoints yet</h2>
+        <Activity size={22} className="text-msu-green mx-auto mb-4" />
+        <h2 className="text-sm font-medium text-gray-900 mb-2">No endpoints yet</h2>
         <p className="text-sm text-gray-500 mb-5">
           Add your first endpoint to start monitoring uptime, latency, and anomalies.
         </p>
@@ -79,10 +68,8 @@ function BackendOffline({ onRetry }) {
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="text-center max-w-sm">
-        <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-          <CloudOff size={22} className="text-status-down" />
-        </div>
-        <h2 className="text-sm font-semibold text-gray-900 mb-2">Can&apos;t reach the backend</h2>
+        <CloudOff size={22} className="text-status-down mx-auto mb-4" />
+        <h2 className="text-sm font-medium text-gray-900 mb-2">Can&apos;t reach the backend</h2>
         <p className="text-sm text-gray-500 mb-5">
           The monitoring API is currently unreachable. Live data and updates are paused until it&apos;s back online.
         </p>
@@ -141,18 +128,22 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-base overflow-hidden">
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
       {/* Top bar */}
       <header className="bg-white border-b border-border shrink-0">
-        <div className="h-14 px-5 flex items-center justify-between">
+        <div className="h-12 px-5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="text-msu-green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-msu-green">
               <polyline points="2,14 5,14 7,6 9,20 11,11 13,9 15,15 17,14 22,14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="text-base font-bold text-gray-900 tracking-tight">LightAPI</span>
+            <span className="text-sm font-bold tracking-tight">LightAPI</span>
+            <span className="hidden sm:inline text-xs text-gray-400 font-mono ml-1">/ dashboard</span>
           </Link>
           <GlobalStats stats={globalStats} />
           <div className="flex items-center gap-3">
+            <Link to="/" className="hidden sm:inline text-xs font-mono text-gray-500 hover:text-gray-900 transition-colors">
+              directory →
+            </Link>
             <WorkspaceChip wsId={wsId} />
             <SettingsDropdown
               activeEndpoint={activeEndpoint}
@@ -204,7 +195,7 @@ export default function Dashboard() {
           {loading ? (
             <div className="p-6 space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 rounded-lg bg-white border border-border animate-pulse" />
+                <div key={i} className="h-24 rounded-sm bg-white border border-border animate-pulse" />
               ))}
             </div>
           ) : offline ? (

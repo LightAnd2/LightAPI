@@ -41,7 +41,7 @@ export default function SettingsDropdown({ activeEndpoint, onDeleted }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 w-52 bg-white border border-border rounded-lg shadow-card-hover z-50 py-1">
+        <div className="absolute right-0 top-8 w-52 bg-white border border-border rounded-sm shadow-card-hover z-50 py-1">
           {activeEndpoint ? (
             <>
               <div className="px-3 py-2 border-b border-border">

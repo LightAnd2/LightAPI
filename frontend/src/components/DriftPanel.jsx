@@ -12,7 +12,7 @@ export default function DriftPanel({ drift }) {
   const Icon = isDegraded ? TrendingUp : TrendingDown
 
   return (
-    <div className={`rounded-lg border ${borderColor} ${bgColor} p-4`}>
+    <div className={`rounded-sm border ${borderColor} ${bgColor} p-4`}>
       <div className="flex items-start gap-3">
         <Icon size={16} className={`${textColor} mt-0.5 shrink-0`} />
         <div className="min-w-0 flex-1">
