@@ -6,6 +6,7 @@ import Explore from './pages/Explore'
 // discovery home. Explore stays eager since it's the entry point.
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Privacy = lazy(() => import('./pages/Privacy'))
+const About = lazy(() => import('./pages/About'))
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<Explore />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/:endpointId" element={<Dashboard />} />
+        <Route path="/about" element={<About />} />
         <Route path="/privacy" element={<Privacy />} />
       </Routes>
     </Suspense>

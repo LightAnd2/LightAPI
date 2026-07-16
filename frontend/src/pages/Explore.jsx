@@ -244,7 +244,10 @@ export default function Explore() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between font-mono text-[11px] text-gray-400">
           <span>LightAPI</span>
           <span>data · public-apis</span>
-          <Link to="/privacy" className="hover:text-gray-700 transition-colors">privacy</Link>
+          <span className="flex items-center gap-3">
+            <Link to="/about" className="hover:text-gray-700 transition-colors">about</Link>
+            <Link to="/privacy" className="hover:text-gray-700 transition-colors">privacy</Link>
+          </span>
         </div>
       </footer>
     </div>

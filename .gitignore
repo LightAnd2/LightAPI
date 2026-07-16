@@ -22,10 +22,16 @@ frontend/dist/
 # Env files
 .env
 .env.local
+.env.*.local
 backend/.env
 
-# macOS
+# Logs
+*.log
+npm-debug.log*
+
+# macOS / Windows
 .DS_Store
+Thumbs.db
 
 # IDE
 .vscode/
