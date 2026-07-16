@@ -44,11 +44,15 @@ Redeploy (env vars only apply to fresh builds). Then verify end-to-end: the
 directory loads, and clicking **Monitor** on any API yields a live latency
 reading within ~30 s.
 
-## 3. (Optional) Custom domain
+## 3. Custom domain
 
-Buy a domain from Cloudflare or Porkbun (~$12/yr), add it in Vercel → Domains,
-and set the DNS records Vercel provides. Then add the new origin to
-`ALLOWED_ORIGINS` in `render.yaml` so CORS accepts it.
+The production domain is **lightapi.dev** (registered at Porkbun): added in
+Vercel → Domains, with an `A` record `@ → 216.198.79.1` at the registrar.
+
+To point a new domain, repeat those two steps, then add the origin to
+`ALLOWED_ORIGINS`. Note: Render's blueprint sync never overwrites an existing
+env var, so update the value in the Render dashboard (Environment tab) — not
+just render.yaml — and redeploy.
 
 ## Upgrading off the free tier
 

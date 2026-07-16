@@ -14,7 +14,7 @@
 
 Most API directories are static lists. LightAPI's are **monitorable**: search 1,500+ free public APIs by category, find one you like, click **Monitor**, and it drops into a real-time dashboard tracking its uptime and latency — with a per-endpoint LSTM that learns each service's normal and flags anomalies before they become outages.
 
-> **Live:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) — directory and live monitoring, fully deployed (frontend on Vercel, backend on Render's free tier — the first request after a quiet spell takes ~50 s while the backend wakes).
+> **Live:** [lightapi.dev](https://lightapi.dev) — directory and live monitoring, fully deployed (frontend on Vercel, backend on Render's free tier — the first request after a quiet spell takes ~50 s while the backend wakes).
 
 ---
 
