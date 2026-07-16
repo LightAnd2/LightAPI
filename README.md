@@ -206,4 +206,4 @@ lightapi/
 
 ---
 
-Built by [Andrew Koja](https://www.linkedin.com/in/andrewkoja) · [GitHub](https://github.com/LightAnd2)
+Built by [Andrew Koja](https://www.linkedin.com/in/andrewkoja) · [GitHub](https://github.com/LightAnd2) · [MIT License](LICENSE)
