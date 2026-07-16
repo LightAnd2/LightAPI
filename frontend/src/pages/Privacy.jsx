@@ -31,7 +31,7 @@ export default function Privacy() {
 
       <main className="max-w-3xl mx-auto px-6 py-14">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-        <p className="text-xs text-gray-400 mb-10">Last updated May 2026</p>
+        <p className="text-xs text-gray-400 mb-10">Last updated July 2026</p>
 
         <div className="space-y-8 text-sm text-gray-600 leading-relaxed">
 
@@ -58,7 +58,7 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-sm font-semibold text-gray-900 mb-2">Data storage</h2>
-            <p>All monitoring data is stored in a SQLite database on the backend server (hosted on Railway). Trained LSTM model weights are stored on the same server. No data is sent to third-party analytics or data platforms.</p>
+            <p>All monitoring data is stored in a SQLite database on the backend server (hosted on Render). Trained LSTM model weights are stored on the same server. No data is sent to third-party analytics or data platforms.</p>
           </section>
 
           <section>
@@ -73,7 +73,7 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-sm font-semibold text-gray-900 mb-2">Open source</h2>
-            <p>LightAPI is fully open source. You can inspect the complete codebase, including all data handling logic, at <a href="https://github.com/LightAnd2/LightAI" target="_blank" rel="noreferrer" className="text-msu-green hover:underline">github.com/LightAnd2/LightAI</a>. You are free to self-host the backend for full control over your data.</p>
+            <p>LightAPI is fully open source. You can inspect the complete codebase, including all data handling logic, at <a href="https://github.com/LightAnd2/LightAPI" target="_blank" rel="noreferrer" className="text-msu-green hover:underline">github.com/LightAnd2/LightAPI</a>. You are free to self-host the backend for full control over your data.</p>
           </section>
 
         </div>

@@ -4,7 +4,7 @@
 
 **Discover every free API on the internet — then monitor any of them, live, in one click.**
 
-[![Backend Tests](https://github.com/LightAnd2/LightAI/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/LightAnd2/LightAI/actions/workflows/backend-tests.yml)
+[![Backend Tests](https://github.com/LightAnd2/LightAPI/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/LightAnd2/LightAPI/actions/workflows/backend-tests.yml)
 &nbsp;·&nbsp;
 `React` `FastAPI` `PyTorch` `WebSocket` `SQLite`
 
@@ -14,7 +14,7 @@
 
 Most API directories are static lists. LightAPI's are **monitorable**: search 1,500+ free public APIs by category, find one you like, click **Monitor**, and it drops into a real-time dashboard tracking its uptime and latency — with a per-endpoint LSTM that learns each service's normal and flags anomalies before they become outages.
 
-> **Frontend:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) — the directory is deployed; run or self-host the backend (see [Deployment](#deployment)) to power live monitoring.
+> **Live:** [lightai-kohl.vercel.app](https://lightai-kohl.vercel.app) — directory and live monitoring, fully deployed (frontend on Vercel, backend on Render's free tier — the first request after a quiet spell takes ~50 s while the backend wakes).
 
 ---
 
@@ -156,7 +156,9 @@ Directory routes are public; endpoint routes are scoped by `?workspace=<id>` (de
 
 ## Deployment
 
-The backend is a standard container, so it runs on any host that takes a Dockerfile — Render, Fly.io, Koyeb, or a VPS.
+The production instance runs on Render's free tier via the [`render.yaml`](render.yaml) blueprint at the repo root — connect the repo in the Render dashboard and it builds `backend/Dockerfile` with health checks and CORS preconfigured. See [docs/DEPLOY.md](docs/DEPLOY.md) for the full walkthrough.
+
+The backend is a standard container, so it also runs on any host that takes a Dockerfile — Fly.io, Koyeb, or a VPS:
 
 ```bash
 cd backend
@@ -198,6 +200,7 @@ lightapi/
 │   ├── tests/             pytest suite (run in CI)
 │   └── Dockerfile
 ├── lightai-sdk/           pip-installable @monitor decorator
+├── render.yaml            Render blueprint (production backend)
 └── .github/workflows/     GitHub Actions CI
 ```
 

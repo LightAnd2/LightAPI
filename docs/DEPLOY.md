@@ -1,90 +1,70 @@
 # Deploying LightAPI
 
 The frontend deploys to Vercel (static). The backend is a container that runs on
-any Dockerfile host. This doc walks the full path to a live production instance.
+any Dockerfile host. This doc describes the current production setup and how to
+reproduce or move it.
 
-## Current state
+## Current state (July 2026)
 
-- **Frontend:** deployed on Vercel (`lightai-kohl.vercel.app`), auto-deploys on push to `main`.
-- **Backend:** not yet hosted. Until it is, the live site shows "backend unreachable."
+- **Frontend:** Vercel (`lightai-kohl.vercel.app`), auto-deploys on push to `main`.
+  `VITE_API_URL` / `VITE_WS_URL` point at the Render backend.
+- **Backend:** Render free tier (`lightapi-ufl5.onrender.com`), deployed from the
+  [`render.yaml`](../render.yaml) blueprint at the repo root. Auto-deploys on push
+  to `main`.
 
-## 1. Deploy the backend (Fly.io)
+### Free-tier trade-offs
 
-Fly runs the `backend/Dockerfile` directly. A 512 MB machine (needed for PyTorch)
-is ~$3.88/mo.
+- The backend **spins down after ~15 idle minutes**; the next request takes ~50 s
+  while it wakes (the UI shows loading skeletons until then).
+- **No persistent disk** — the SQLite DB lives in the container, so user-created
+  workspaces and readings are lost on restart/redeploy. The API directory reseeds
+  itself instantly from `backend/data/apis_snapshot.json`.
 
-```bash
-brew install flyctl
-fly auth login            # or: fly auth signup  (card required for verification)
+## 1. Backend (Render)
 
-cd backend
-fly launch --no-deploy    # detects the Dockerfile; creates fly.toml
-```
+The blueprint does all the work: it builds `backend/Dockerfile`, sets
+`ALLOWED_ORIGINS` and `DATABASE_URL`, and health-checks `/api/directory/categories`.
 
-During `fly launch`:
-- **App name:** e.g. `lightapi`
-- **Region:** closest to you
-- **Postgres / Redis / Upstash:** decline all (LightAPI uses SQLite)
-- **Deploy now:** no (we set the machine size + volume first)
+1. Sign in at [dashboard.render.com](https://dashboard.render.com) (GitHub login, no card).
+2. **New + → Blueprint** → select this repo → **Deploy**.
+3. First build takes ~10–15 min (PyTorch download); later builds are cached.
 
-Then configure:
+Verify: `https://<app>.onrender.com/api/directory/categories` returns `{"total": 1573, ...}`.
 
-```bash
-# Persistent volume so the SQLite DB + trained models survive restarts
-fly volumes create lightapi_data --size 1 --region <your-region>
+## 2. Frontend (Vercel)
 
-# Environment
-fly secrets set ALLOWED_ORIGINS=https://lightai-kohl.vercel.app
-fly secrets set DATABASE_URL=sqlite:////data/lightapi.db
-# Optional: require an API key on the SDK ingest endpoint
-# fly secrets set LIGHTAI_API_KEY=<generate-a-random-string>
-```
-
-Edit `fly.toml`:
-- Mount the volume at `/data`:
-  ```toml
-  [[mounts]]
-    source = "lightapi_data"
-    destination = "/data"
-  ```
-- Ensure `[[vm]]` memory is `512` MB (256 will OOM on torch).
-- Internal port should be `8000` (the Dockerfile listens on `$PORT`, Fly sets it).
-
-Deploy:
-
-```bash
-fly deploy
-fly open        # opens https://<app>.fly.dev
-```
-
-Verify: `https://<app>.fly.dev/api/directory/categories` returns `{"total": 1573, ...}`.
-
-## 2. Point the frontend at the backend (Vercel)
-
-In the Vercel project settings → Environment Variables, set:
+In the Vercel project → Settings → Environment Variables (Production **and** Preview):
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | `https://<app>.fly.dev` |
-| `VITE_WS_URL` | `wss://<app>.fly.dev` |
+| `VITE_API_URL` | `https://<app>.onrender.com` |
+| `VITE_WS_URL` | `wss://<app>.onrender.com` |
 
-Then redeploy the frontend (push any commit, or "Redeploy" in the Vercel dashboard).
+Redeploy (env vars only apply to fresh builds). Then verify end-to-end: the
+directory loads, and clicking **Monitor** on any API yields a live latency
+reading within ~30 s.
 
-## 3. Verify end-to-end
+## 3. (Optional) Custom domain
 
-- Open the site → the directory loads.
-- Click **Monitor** on any API → it appears on the dashboard and gets a live latency reading within ~30s.
+Buy a domain from Cloudflare or Porkbun (~$12/yr), add it in Vercel → Domains,
+and set the DNS records Vercel provides. Then add the new origin to
+`ALLOWED_ORIGINS` in `render.yaml` so CORS accepts it.
 
-## 4. (Optional) Custom domain
+## Upgrading off the free tier
 
-Buy a domain (`lightapi.dev` / `.app`) from Cloudflare or Porkbun (~$12/yr), add it
-in Vercel → Domains, and set the DNS records Vercel provides. Do this only after the
-deploy above works end-to-end.
+When spin-downs or data loss matter, either upgrade the Render service (paid
+instance + persistent disk mounted at `/data`) or move to Fly.io — a 512 MB
+machine (~$4/mo, needed for PyTorch; 256 MB will OOM) with a volume:
 
-## Notes
+```bash
+cd backend
+fly launch --no-deploy        # detects the Dockerfile
+fly volumes create lightapi_data --size 1
+fly secrets set ALLOWED_ORIGINS=https://lightai-kohl.vercel.app \
+                DATABASE_URL=sqlite:////data/lightapi.db
+# mount the volume at /data in fly.toml, then:
+fly deploy
+```
 
-- The Dockerfile has not been built locally (no Docker in the dev env). Fly's build
-  is the first real build — if it errors, the log will say why (usually a missing
-  system lib for torch; the CPU wheel used here avoids CUDA).
-- The API directory seeds instantly from `backend/data/apis_snapshot.json` and
-  refreshes from GitHub daily.
+Either way, point the Vercel env vars at the new backend URL and redeploy the
+frontend.
