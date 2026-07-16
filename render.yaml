@@ -9,6 +9,6 @@ services:
     healthCheckPath: /api/directory/categories
     envVars:
       - key: ALLOWED_ORIGINS
-        value: https://lightai-kohl.vercel.app,http://localhost:3000,http://localhost:5173
+        value: https://lightapi.dev,https://lightai-kohl.vercel.app,http://localhost:3000,http://localhost:5173
       - key: DATABASE_URL
         value: sqlite:////data/lightapi.db

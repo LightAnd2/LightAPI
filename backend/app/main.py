@@ -80,7 +80,7 @@ async def security_headers(request: Request, call_next):
 
 # Lock CORS to known frontends. Override in production via ALLOWED_ORIGINS
 # (comma-separated). Defaults cover the deployed site and local dev.
-_default_origins = "https://lightai-kohl.vercel.app,http://localhost:3000,http://localhost:5173"
+_default_origins = "https://lightapi.dev,https://lightai-kohl.vercel.app,http://localhost:3000,http://localhost:5173"
 ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", _default_origins).split(",") if o.strip()]
 
 app.add_middleware(
