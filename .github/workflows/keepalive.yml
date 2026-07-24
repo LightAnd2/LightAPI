@@ -1,13 +1,16 @@
 name: Keep backend awake
 
 # Render's free tier spins the backend down after ~15 minutes of inactivity,
-# and the next visitor then waits ~50s for it to wake. Pinging it every 10
-# minutes keeps it warm so the directory loads instantly and monitoring keeps
-# running. Public repos get unlimited Actions minutes, so this is free.
+# and the next visitor then waits ~50s for it to wake. Pinging keeps it warm so
+# the directory loads instantly and monitoring keeps running. Public repos get
+# unlimited Actions minutes, so this is free.
+#
+# Every 5 minutes rather than 10: GitHub often delays scheduled runs under load,
+# and the extra margin keeps a delayed run from exceeding Render's 15m timeout.
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
