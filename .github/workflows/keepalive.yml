@@ -1,0 +1,24 @@
+name: Keep backend awake
+
+# Render's free tier spins the backend down after ~15 minutes of inactivity,
+# and the next visitor then waits ~50s for it to wake. Pinging it every 10
+# minutes keeps it warm so the directory loads instantly and monitoring keeps
+# running. Public repos get unlimited Actions minutes, so this is free.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the backend
+        run: |
+          curl -sS --max-time 90 --retry 3 --retry-delay 10 \
+            https://lightapi-ufl5.onrender.com/api/directory/categories \
+            -o /dev/null -w "status=%{http_code} time=%{time_total}s\n"
