@@ -93,7 +93,7 @@ npm run dev        # http://localhost:3000
 
 **SDK** — instrument any Python function:
 ```python
-pip install lightai
+pip install "git+https://github.com/LightAnd2/LightAPI#subdirectory=lightai-sdk"
 ```
 ```python
 from lightai import monitor
@@ -199,7 +199,7 @@ lightapi/
 │   ├── data/              Bundled API directory snapshot
 │   ├── tests/             pytest suite (run in CI)
 │   └── Dockerfile
-├── lightai-sdk/           pip-installable @monitor decorator
+├── lightai-sdk/           installable @monitor decorator
 ├── render.yaml            Render blueprint (production backend)
 └── .github/workflows/     GitHub Actions CI
 ```
