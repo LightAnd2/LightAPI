@@ -27,7 +27,7 @@ Most API directories are static lists. LightAPI's are **monitorable**: search 1,
 
 **Monitoring** — one click from any API
 - Pings each endpoint on an interval; records latency, status, and uptime
-- Live dashboard updates over **WebSocket** within 100 ms of each reading
+- Live dashboard updates over **WebSocket** as each reading arrives
 - **Per-endpoint LSTM** trained on that service's own history; z-score fallback until it has enough data
 - Predictive alerts, incident logs, root-cause correlation, and deploy-regression tracking
 
